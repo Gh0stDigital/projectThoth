@@ -1,5 +1,8 @@
 import { useUiStore } from '@/state/uiStore'
 import { usePersistentStore } from '@/state/persistentStore'
+import { AssetImage } from '@/ui/components/AssetImage'
+import { Bar } from '@/ui/components/Bar'
+import { totemBalance } from '@/config/balance'
 
 const menuItems = [
   { screen: 'compendium' as const, icon: '📖', label: 'Load Spells / Compendium', desc: 'Create, edit, and organize Spell Words and Spell Sets.' },
@@ -22,13 +25,36 @@ export function MainMenuScreen() {
       </div>
 
       {totem && (
-        <div className="card row">
-          <div>
-            <div style={{ fontWeight: 700 }}>{totem.name}</div>
-            <div className="faint">Lv {totem.level} · {spellCount} Spells known</div>
+        <button className="totem-banner" onClick={() => goTo('totem')}>
+          <span className="totem-banner-tag">Your Totem</span>
+          <AssetImage
+            category="totems"
+            assetKey={totem.avatarKey}
+            alt={totem.name}
+            className="avatar-img avatar-hero"
+          />
+          <div className="totem-banner-body">
+            <div className="name-row">
+              <span className="name">{totem.name}</span>
+              <span className="muted">Lv {totem.level}</span>
+            </div>
+            <div className="hp-row">
+              <span>❤️ {totem.currentHp}/{totem.maxHp}</span>
+              <div style={{ flex: 1 }}>
+                <Bar value={totem.currentHp} max={totem.maxHp} kind="hp" thin />
+              </div>
+            </div>
+            <div className="hp-row">
+              <span>✨ {totem.experience}/{totemBalance.xpToNextLevel(totem.level)}</span>
+              <div style={{ flex: 1 }}>
+                <Bar value={totem.experience} max={totemBalance.xpToNextLevel(totem.level)} kind="xp" thin />
+              </div>
+            </div>
+            <div className="totem-banner-foot faint">
+              💰 {totem.money} · {spellCount} Spells known
+            </div>
           </div>
-          <div className="faint">💰 {totem.money}</div>
-        </div>
+        </button>
       )}
 
       <div className="menu-list">

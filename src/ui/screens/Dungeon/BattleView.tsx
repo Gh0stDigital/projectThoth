@@ -12,7 +12,7 @@ import { WordInfoPanel } from './WordInfoPanel'
 export function BattleView() {
   const battle = useDungeonStore((s) => s.battle)!
   const run = useDungeonStore((s) => s.run)!
-  const wordInfoOpen = useDungeonStore((s) => s.wordInfoOpen)
+  const wordInfoOpen = useDungeonStore((s) => s.activePanel === 'words')
   const toggleWordInfo = useDungeonStore((s) => s.toggleWordInfo)
   const selectCard = useDungeonStore((s) => s.selectCard)
   const submitAttackAnswer = useDungeonStore((s) => s.submitAttackAnswer)

@@ -62,12 +62,17 @@ export function createEmptyRunStats(): RunStats {
 
 export type DungeonPhase =
   | 'exploring'
+  /** Standing in a room between events — the player picks an action. */
+  | 'room'
   | 'event'
   | 'challenge'
   | 'resolution'
   | 'battle'
   | 'boss_battle'
   | 'results'
+
+/** Which flavor of room the player is standing in during phase 'room'. */
+export type RoomKind = 'entrance' | 'intermission'
 
 export interface DungeonRunState {
   config: DungeonConfig
@@ -77,6 +82,9 @@ export interface DungeonRunState {
   bossRoomAnnounced: boolean
   currentEvent: DungeonEvent | null
   phase: DungeonPhase
+  roomKind: RoomKind
+  /** Transient one-line notice shown in the room (e.g. an item was used). */
+  roomNotice: string | null
   lastOutcomeText: string[]
   stats: RunStats
   startedAt: string

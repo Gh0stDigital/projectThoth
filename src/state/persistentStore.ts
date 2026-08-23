@@ -4,6 +4,9 @@ import type { SpellSet } from '@/domain/spellSet'
 import type { Totem } from '@/domain/totem'
 import type { GameSettings } from '@/domain/settings'
 import { defaultSettings } from '@/domain/settings'
+import type { InventoryEntry, ItemId } from '@/domain/item'
+import { itemBalance } from '@/config/items'
+import { addItem, consumeItem } from '@/systems/inventory'
 import type { DungeonTierId } from '@/config/balance'
 import { PersistenceService, localStorageAdapter } from '@/systems/persistence'
 import { addSpell, editSpell, deleteSpell, type SpellEditInput, markEquipped } from '@/systems/spellCompendium'
@@ -31,6 +34,7 @@ export interface PersistedData {
   activeTotemId: string | null
   settings: GameSettings
   lastDungeonSelection: DungeonSelectionDraft
+  inventory: InventoryEntry[]
 }
 
 const persistence = new PersistenceService<PersistedData>(localStorageAdapter)
@@ -44,6 +48,7 @@ function defaultData(): PersistedData {
     activeTotemId: totem.id,
     settings: defaultSettings,
     lastDungeonSelection: { totemSpellSetId: null, dungeonSpellSetId: null, tierId: 'tier10' },
+    inventory: itemBalance.startingInventory.map((e) => ({ ...e })),
   }
 }
 
@@ -59,6 +64,7 @@ function loadInitial(): PersistedData {
     activeTotemId: saved.activeTotemId ?? defaults.activeTotemId,
     settings: { ...defaults.settings, ...saved.settings },
     lastDungeonSelection: { ...defaults.lastDungeonSelection, ...saved.lastDungeonSelection },
+    inventory: saved.inventory ?? defaults.inventory,
   }
 }
 
@@ -81,6 +87,9 @@ export interface PersistentStore extends PersistedData {
 
   updateSettings(patch: Partial<GameSettings>): void
   setLastDungeonSelection(sel: DungeonSelectionDraft): void
+
+  grantItem(itemId: ItemId, quantity?: number): void
+  consumeItem(itemId: ItemId): void
 }
 
 export const usePersistentStore = create<PersistentStore>()((set, get) => ({
@@ -157,10 +166,17 @@ export const usePersistentStore = create<PersistentStore>()((set, get) => ({
   setLastDungeonSelection(sel) {
     set({ lastDungeonSelection: sel })
   },
+
+  grantItem(itemId, quantity = 1) {
+    set((state) => ({ inventory: addItem(state.inventory, itemId, quantity) }))
+  },
+  consumeItem(itemId) {
+    set((state) => ({ inventory: consumeItem(state.inventory, itemId) }))
+  },
 }))
 
 // Persist on every change. Simple + adequate for prototype scale.
 usePersistentStore.subscribe((state) => {
-  const { spells, spellSets, totems, activeTotemId, settings, lastDungeonSelection } = state
-  persistence.save({ spells, spellSets, totems, activeTotemId, settings, lastDungeonSelection })
+  const { spells, spellSets, totems, activeTotemId, settings, lastDungeonSelection, inventory } = state
+  persistence.save({ spells, spellSets, totems, activeTotemId, settings, lastDungeonSelection, inventory })
 })

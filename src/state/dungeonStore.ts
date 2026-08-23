@@ -2,7 +2,9 @@ import { create } from 'zustand'
 import type { Spell } from '@/domain/spell'
 import type { DungeonConfig, DungeonEventAction, DungeonRunState, RunStats } from '@/domain/dungeon'
 import type { BattleState } from '@/domain/battle'
+import type { ItemId } from '@/domain/item'
 import { dungeonTiers, totemBalance, rewardBalance } from '@/config/balance'
+import { getItemDef, itemBalance } from '@/config/items'
 import {
   startDungeon,
   generateNextEvent,
@@ -14,6 +16,7 @@ import {
   recordBossDefeated,
   addTotemXp,
   addMoneyEarned,
+  enterRoom,
 } from '@/systems/dungeonSession'
 import {
   startBattle,
@@ -28,6 +31,7 @@ import {
   markDefeat,
 } from '@/systems/battleEngine'
 import { grantPlateauBonusXp } from '@/systems/spellCompendium'
+import { applyItemToSpells, applyItemToTotem, countOf, itemUseText, rollItemDrop } from '@/systems/inventory'
 import { addMoney, applyDamage, heal, addTotemExperience } from '@/systems/totemManager'
 import { usePersistentStore } from './persistentStore'
 
@@ -46,17 +50,26 @@ export function challengedCount(run: DungeonRunState): number {
   return run.config.dungeonWordIds.filter((id) => run.challengedWordIds.includes(id)).length
 }
 
+/** Which slide-over panel is open on top of the dungeon, if any. */
+export type DungeonPanel = 'words' | 'items' | 'status'
+
 interface DungeonStore {
   screenPhase: 'config' | 'run' | 'results'
   run: DungeonRunState | null
   battle: BattleState | null
-  wordInfoOpen: boolean
+  activePanel: DungeonPanel | null
   resultsStats: RunStats | null
 
   beginDungeon(config: DungeonConfig): void
   chooseEventAction(action: DungeonEventAction): void
   submitEventChallengeAnswer(text: string): void
   continueExploring(): void
+
+  /** Room actions: leave the room and roll the next event. */
+  moveToNextEvent(): void
+  /** Room action: go straight into the boss fight (once unlocked). */
+  enterBossFromRoom(): void
+  useItem(itemId: ItemId): void
 
   selectCard(spellId: string): void
   submitAttackAnswer(text: string): void
@@ -68,6 +81,8 @@ interface DungeonStore {
   continueAfterVictory(): void
   continueAfterDefeat(): void
 
+  openPanel(panel: DungeonPanel): void
+  closePanel(): void
   toggleWordInfo(): void
   exitToMenu(): void
 }
@@ -80,15 +95,14 @@ export const useDungeonStore = create<DungeonStore>()((set, get) => ({
   screenPhase: 'config',
   run: null,
   battle: null,
-  wordInfoOpen: false,
+  activePanel: null,
   resultsStats: null,
 
   beginDungeon(config) {
-    let run = startDungeon(config)
-    const dungeonSpells = resolveSpells(config.dungeonWordIds, usePersistentStore.getState().spells)
-    const { run: run2 } = generateNextEvent(run, dungeonSpells)
-    run = run2
-    set({ run, battle: null, screenPhase: 'run', resultsStats: null, wordInfoOpen: false })
+    // startDungeon() already opens in the entrance room — the first event
+    // is only rolled once the player chooses to Move.
+    const run = startDungeon(config)
+    set({ run, battle: null, screenPhase: 'run', resultsStats: null, activePanel: null })
   },
 
   chooseEventAction(action) {
@@ -147,19 +161,60 @@ export const useDungeonStore = create<DungeonStore>()((set, get) => ({
     if (resolution.leveledUp.leveledUp) {
       run3 = recordLevelUp(run3, spell.id, resolution.leveledUp.fromLevel, resolution.leveledUp.toLevel)
     }
-    run3 = {
-      ...run3,
-      lastOutcomeText: [resolution.correct ? 'Correct!' : 'Incorrect.', reward.resultText],
+
+    // A successfully-opened treasure may also yield a consumable.
+    const outcomeLines = [resolution.correct ? 'Correct!' : 'Incorrect.', reward.resultText]
+    if (event.type === 'treasure' && resolution.correct && Math.random() < itemBalance.treasureDropChance) {
+      const dropped = rollItemDrop()
+      if (dropped) {
+        const def = getItemDef(dropped)
+        usePersistentStore.getState().grantItem(dropped)
+        outcomeLines.push(`${def.icon} You also found a ${def.name}!`)
+      }
     }
+
+    run3 = { ...run3, lastOutcomeText: outcomeLines }
     set({ run: run3 })
   },
 
   continueExploring() {
     const { run } = get()
     if (!run) return
+    set({ run: enterRoom(run, 'intermission') })
+  },
+
+  moveToNextEvent() {
+    const { run, battle } = get()
+    if (!run || battle || run.phase !== 'room') return
     const dungeonSpells = resolveSpells(run.config.dungeonWordIds, usePersistentStore.getState().spells)
     const { run: run2 } = generateNextEvent({ ...run, phase: 'exploring' }, dungeonSpells)
     set({ run: run2 })
+  },
+
+  enterBossFromRoom() {
+    const { run, battle } = get()
+    if (!run || battle || run.phase !== 'room' || !run.bossUnlocked) return
+    const tier = dungeonTiers.find((t) => t.id === run.config.tierId)!
+    const totemSet = usePersistentStore.getState().spellSets.find((s) => s.id === run.config.totemSpellSetId)
+    const boss = spawnBoss(`boss-${run.startedAt}`, tier, run.config.dungeonWordIds.length)
+    const bossBattle = startBattle(boss, totemSet?.spellIds ?? [], run.config.dungeonWordIds)
+    set({ run: { ...run, phase: 'boss_battle', bossRoomAnnounced: true, roomNotice: null }, battle: bossBattle })
+  },
+
+  useItem(itemId) {
+    const { run } = get()
+    if (!run || run.phase !== 'room') return
+    const store = usePersistentStore.getState()
+    if (countOf(store.inventory, itemId) <= 0) return
+
+    const def = getItemDef(itemId)
+    store.replaceTotem(run.config.totemId, (t) => applyItemToTotem(t, def))
+    if (def.effect.kind === 'charge') {
+      const deckIds = store.spellSets.find((s) => s.id === run.config.totemSpellSetId)?.spellIds ?? []
+      store.replaceSpells((spells) => applyItemToSpells(spells, deckIds, def))
+    }
+    store.consumeItem(itemId)
+    set({ run: { ...run, roomNotice: itemUseText(def) }, activePanel: null })
   },
 
   selectCard(spellId) {
@@ -253,6 +308,10 @@ export const useDungeonStore = create<DungeonStore>()((set, get) => ({
       let run2 = recordBossDefeated(run)
       run2 = addTotemXp(run2, totemBalance.xpPerBossWin)
       run2 = addMoneyEarned(run2, rewardBalance.bossMoneyReward)
+      for (let i = 0; i < itemBalance.bossDropCount; i++) {
+        const dropped = rollItemDrop()
+        if (dropped) usePersistentStore.getState().grantItem(dropped)
+      }
       usePersistentStore.getState().replaceTotem(totemId, (t) => {
         const leveled = addTotemExperience(t, totemBalance.xpPerBossWin)
         const withMoney = addMoney(leveled.totem, rewardBalance.bossMoneyReward)
@@ -273,7 +332,7 @@ export const useDungeonStore = create<DungeonStore>()((set, get) => ({
     grantTotemXp(totemId, totemBalance.xpPerBattleWin)
     set({
       battle: null,
-      run: { ...run2, phase: 'resolution', lastOutcomeText: ['The foe falls. You continue exploring.'] },
+      run: { ...run2, phase: 'resolution', lastOutcomeText: ['The foe falls. You catch your breath.'] },
     })
   },
 
@@ -281,12 +340,18 @@ export const useDungeonStore = create<DungeonStore>()((set, get) => ({
     set({ battle: null, run: null, screenPhase: 'config', resultsStats: null })
   },
 
+  openPanel(panel) {
+    set({ activePanel: panel })
+  },
+  closePanel() {
+    set({ activePanel: null })
+  },
   toggleWordInfo() {
-    set((s) => ({ wordInfoOpen: !s.wordInfoOpen }))
+    set((s) => ({ activePanel: s.activePanel === 'words' ? null : 'words' }))
   },
 
   exitToMenu() {
-    set({ screenPhase: 'config', run: null, battle: null, resultsStats: null, wordInfoOpen: false })
+    set({ screenPhase: 'config', run: null, battle: null, resultsStats: null, activePanel: null })
   },
 }))
 

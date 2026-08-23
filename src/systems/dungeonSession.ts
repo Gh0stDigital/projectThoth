@@ -3,6 +3,7 @@ import type {
   DungeonConfig,
   DungeonEvent,
   DungeonRunState,
+  RoomKind,
 } from '@/domain/dungeon'
 import { createEmptyRunStats } from '@/domain/dungeon'
 import type { DungeonTierDef } from '@/config/balance'
@@ -57,11 +58,31 @@ export function startDungeon(config: DungeonConfig): DungeonRunState {
     bossUnlocked: false,
     bossRoomAnnounced: false,
     currentEvent: null,
-    phase: 'exploring',
+    // A run opens in the entrance room, where the player chooses an action
+    // rather than being dropped straight into a generated event.
+    phase: 'room',
+    roomKind: 'entrance',
+    roomNotice: null,
     lastOutcomeText: [],
     stats: createEmptyRunStats(),
     startedAt: new Date().toISOString(),
   }
+}
+
+/**
+ * Returns the player to a room between events. `notice` surfaces a
+ * one-line result (an item used, a drop found) in the room itself.
+ */
+export function enterRoom(
+  run: DungeonRunState,
+  kind: RoomKind = 'intermission',
+  notice: string | null = null,
+): DungeonRunState {
+  return { ...run, phase: 'room', roomKind: kind, roomNotice: notice, currentEvent: null }
+}
+
+export function setRoomNotice(run: DungeonRunState, notice: string | null): DungeonRunState {
+  return { ...run, roomNotice: notice }
 }
 
 function pickRandomSpell(spells: Spell[], rng: () => number): Spell {
@@ -109,7 +130,7 @@ export function generateNextEvent(
       actions: bossRoomDefinition.actions,
     }
     return {
-      run: { ...run, currentEvent: event, phase: 'event', bossRoomAnnounced: true },
+      run: { ...run, currentEvent: event, phase: 'event', roomNotice: null, bossRoomAnnounced: true },
       event,
     }
   }
@@ -134,6 +155,7 @@ export function generateNextEvent(
     ...run,
     currentEvent: event,
     phase: 'event',
+    roomNotice: null,
     eventHistory: [...run.eventHistory, type],
     stats: { ...run.stats, eventsEncountered: run.stats.eventsEncountered + 1 },
   }

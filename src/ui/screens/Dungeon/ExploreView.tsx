@@ -8,6 +8,9 @@ import { ProgressMeter } from '@/ui/components/ProgressMeter'
 import { TotemPanel } from '@/ui/components/TotemPanel'
 import { ChallengeView } from './ChallengeView'
 import { WordInfoPanel } from './WordInfoPanel'
+import { ItemPanel } from './ItemPanel'
+import { StatusPanel } from './StatusPanel'
+import { RoomActions } from './RoomActions'
 
 function actionLabel(action: DungeonEventAction, event: DungeonEvent): string {
   if (action === 'attempt' && event.type === 'monster') return '⚔️ Fight'
@@ -83,23 +86,33 @@ function ResolutionBody({
 
 export function ExploreView() {
   const run = useDungeonStore((s) => s.run)!
-  const wordInfoOpen = useDungeonStore((s) => s.wordInfoOpen)
+  const activePanel = useDungeonStore((s) => s.activePanel)
+  const openPanel = useDungeonStore((s) => s.openPanel)
+  const closePanel = useDungeonStore((s) => s.closePanel)
   const toggleWordInfo = useDungeonStore((s) => s.toggleWordInfo)
   const chooseEventAction = useDungeonStore((s) => s.chooseEventAction)
   const submitEventChallengeAnswer = useDungeonStore((s) => s.submitEventChallengeAnswer)
   const continueExploring = useDungeonStore((s) => s.continueExploring)
+  const moveToNextEvent = useDungeonStore((s) => s.moveToNextEvent)
+  const enterBossFromRoom = useDungeonStore((s) => s.enterBossFromRoom)
+  const useItem = useDungeonStore((s) => s.useItem)
   const exitToMenu = useDungeonStore((s) => s.exitToMenu)
 
   const totems = usePersistentStore((s) => s.totems)
+  const spellSets = usePersistentStore((s) => s.spellSets)
+  const inventory = usePersistentStore((s) => s.inventory)
   const charsPerSecond = usePersistentStore((s) => s.settings.typewriterCharsPerSecond)
   const totem = totems.find((t) => t.id === run.config.totemId)!
+  const totemSet = spellSets.find((s) => s.id === run.config.totemSpellSetId) ?? null
 
   const event = run.currentEvent
-  if (!event) return null
+  const inRoom = run.phase === 'room'
+  if (!inRoom && !event) return null
 
   const challenged = challengedCount(run)
   const total = run.config.dungeonWordIds.length
-  const showPersistentBossButton = run.bossUnlocked && run.phase === 'event' && !event.actions.includes('enter_boss')
+  const showPersistentBossButton =
+    run.bossUnlocked && run.phase === 'event' && !!event && !event.actions.includes('enter_boss')
 
   return (
     <div className="screen">
@@ -111,26 +124,43 @@ export function ExploreView() {
 
       <div className="scene-window">
         <AssetImage category="locations" assetKey={run.config.locationKey} alt="Dungeon location" />
-        <div className="explore-event-overlay">
-          <AssetImage category={event.imageCategory} assetKey={event.imageKey} alt={event.title} />
-        </div>
-        <span className="scene-tag">{event.title}</span>
+        {event && (
+          <div className="explore-event-overlay">
+            <AssetImage category={event.imageCategory} assetKey={event.imageKey} alt={event.title} />
+          </div>
+        )}
+        <span className="scene-tag">
+          {inRoom ? (run.roomKind === 'entrance' ? 'Entrance' : 'Intermission') : event!.title}
+        </span>
       </div>
 
       <TotemPanel totem={totem} />
 
       <ProgressMeter challenged={challenged} total={total} bossUnlocked={run.bossUnlocked} onOpenWordInfo={toggleWordInfo} />
 
-      {run.phase === 'event' && (
+      {inRoom && (
+        <RoomActions
+          roomKind={run.roomKind}
+          notice={run.roomNotice}
+          bossUnlocked={run.bossUnlocked}
+          onMove={moveToNextEvent}
+          onCheckWords={() => openPanel('words')}
+          onUseItem={() => openPanel('items')}
+          onStatus={() => openPanel('status')}
+          onEnterBoss={enterBossFromRoom}
+        />
+      )}
+
+      {run.phase === 'event' && event && (
         <EventBody key={event.id} event={event} charsPerSecond={charsPerSecond} onChooseAction={chooseEventAction} />
       )}
 
-      {run.phase === 'challenge' && event.challenge && (
+      {run.phase === 'challenge' && event?.challenge && (
         <ChallengeView challenge={event.challenge} onSubmit={submitEventChallengeAnswer} />
       )}
 
       {run.phase === 'resolution' && (
-        <ResolutionBody key={event.id} run={run} charsPerSecond={charsPerSecond} onContinue={continueExploring} />
+        <ResolutionBody key={event?.id ?? 'resolution'} run={run} charsPerSecond={charsPerSecond} onContinue={continueExploring} />
       )}
 
       <div style={{ flex: 1 }} />
@@ -141,7 +171,11 @@ export function ExploreView() {
         </button>
       )}
 
-      {wordInfoOpen && <WordInfoPanel run={run} battle={null} onClose={toggleWordInfo} />}
+      {activePanel === 'words' && <WordInfoPanel run={run} battle={null} onClose={closePanel} />}
+      {activePanel === 'items' && <ItemPanel inventory={inventory} onUse={useItem} onClose={closePanel} />}
+      {activePanel === 'status' && (
+        <StatusPanel totem={totem} run={run} totemSet={totemSet} challenged={challenged} onClose={closePanel} />
+      )}
     </div>
   )
 }
