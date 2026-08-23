@@ -7,7 +7,6 @@ import type {
 import { createEmptyRunStats } from '@/domain/dungeon'
 import type { DungeonTierDef } from '@/config/balance'
 import { rewardBalance, battleBalance, spellBalance } from '@/config/balance'
-import { pickRandomFlavorKey } from '@/config/assets'
 import { pickNextEventType } from './eventGenerator'
 import { eventDefinitions, bossRoomDefinition } from './eventContent'
 import { generateChallenge, resolveChallenge, type ChallengeResolution } from './challengeEngine'
@@ -42,9 +41,11 @@ export function buildDungeonConfig(
     dungeonSpellSetId,
     tierId: tier.id,
     dungeonWordIds: pool,
-    // Chosen once per run so the "where am I" backdrop stays stable across
-    // every event, challenge, and battle transition until the run ends.
-    locationKey: pickRandomFlavorKey('locations', rng),
+    // Always the single default location backdrop for now — kept as a
+    // config field (rather than a hardcoded constant in the UI) so a
+    // per-tier or randomized location can be swapped in later without
+    // touching the screens that render it.
+    locationKey: 'default',
   }
 }
 

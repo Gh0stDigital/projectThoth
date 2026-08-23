@@ -105,12 +105,4 @@ export function pickFlavor(category: AssetCategory, seed: string): string {
   return table[keys[hash % keys.length]]
 }
 
-/** Pick a uniformly random (non-"default") flavor key for a category using the given RNG. */
-export function pickRandomFlavorKey(category: AssetCategory, rng: () => number = Math.random): string {
-  const table = registry[category]
-  const keys = Object.keys(table).filter((k) => k !== 'default')
-  if (keys.length === 0) return 'default'
-  return keys[Math.floor(rng() * keys.length)]
-}
-
 export const assetRegistry = registry

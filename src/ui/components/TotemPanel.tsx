@@ -10,7 +10,8 @@ interface TotemPanelProps {
 export function TotemPanel({ totem, effectText }: TotemPanelProps) {
   return (
     <div className="totem-panel">
-      <AssetImage category="totems" assetKey={totem.avatarKey} alt={totem.name} className="avatar-img" />
+      <span className="totem-panel-tag">Your Totem</span>
+      <AssetImage category="totems" assetKey={totem.avatarKey} alt={totem.name} className="avatar-img avatar-hero" />
       <div className="stats">
         <div className="name-row">
           <span className="name">{totem.name}</span>

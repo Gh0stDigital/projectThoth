@@ -722,18 +722,36 @@ select:focus {
 }
 
 .totem-panel {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   background: var(--bg-panel);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  padding: 10px 12px;
+  padding: 16px 14px 12px;
+  margin-top: 8px;
   box-shadow: 0 0 16px -6px var(--glow-cyan);
 }
 
+/* Pinned label, matching .scene-tag, so the totem panel reads as its own
+   "window" alongside the scene window instead of a thin status strip. */
+.totem-panel-tag {
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  background: rgba(10, 12, 18, 0.9);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
 .totem-panel .avatar-img {
-  width: 32px;
+  width: 76px;
   flex-shrink: 0;
 }
 
@@ -756,14 +774,14 @@ select:focus {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .totem-panel .name-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .totem-panel .name-row .name {
@@ -775,7 +793,7 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
   font-family: var(--font-mono);
 }
 
