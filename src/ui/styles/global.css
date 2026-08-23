@@ -350,11 +350,19 @@ p {
   outline: none;
 }
 
-.field select:focus,
-.field input[type='text']:focus,
-.field textarea:focus {
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 0 3px var(--glow-cyan);
+/* No focus glow/outline on text inputs — the answer box during a timed
+   challenge needs to stay fully legible, not ringed or obscured. */
+input[type='text'],
+textarea,
+select {
+  outline: none;
+}
+
+input[type='text']:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  box-shadow: none;
 }
 
 .field-error {
@@ -605,8 +613,8 @@ p {
 
 .battle-enemy-overlay .asset-img {
   position: static;
-  width: 62%;
-  height: 62%;
+  width: 46%;
+  height: 46%;
   border-radius: 50%;
   border: 2px solid var(--border-strong);
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
@@ -694,14 +702,15 @@ p {
   align-items: center;
   gap: 12px;
   background: var(--bg-panel);
-  border: 1px solid var(--border-soft);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
   padding: 10px 12px;
+  box-shadow: 0 0 16px -6px var(--glow-cyan);
 }
 
 .totem-panel .avatar-img {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
 }
 
@@ -717,7 +726,7 @@ p {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .totem-panel .name-row .name {
