@@ -491,7 +491,15 @@ select:focus {
 }
 
 .avatar-img {
-  border-radius: 50%;
+  /* Square icon, not a circle. width:100% makes it fill whatever box it's
+     placed in (instead of falling back to the source PNG's native 256px
+     size), aspect-ratio locks that box to 1:1 no matter what the
+     surrounding layout tries to do, and object-fit: cover crops the
+     source image to fill the square instead of stretching/squishing it —
+     true regardless of the source PNG's own dimensions. */
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
   object-fit: cover;
   image-rendering: pixelated;
   background: var(--bg-panel-raised);
@@ -709,8 +717,7 @@ select:focus {
 }
 
 .totem-panel .avatar-img {
-  width: 36px;
-  height: 36px;
+  width: 32px;
   flex-shrink: 0;
 }
 
