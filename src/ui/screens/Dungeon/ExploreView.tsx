@@ -110,7 +110,10 @@ export function ExploreView() {
       </div>
 
       <div className="scene-window">
-        <AssetImage category={event.imageCategory} assetKey={event.imageKey} alt={event.title} />
+        <AssetImage category="locations" assetKey={run.config.locationKey} alt="Dungeon location" />
+        <div className="explore-event-overlay">
+          <AssetImage category={event.imageCategory} assetKey={event.imageKey} alt={event.title} />
+        </div>
         <span className="scene-tag">{event.title}</span>
       </div>
 

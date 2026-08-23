@@ -9,6 +9,8 @@ export interface DungeonConfig {
   tierId: DungeonTierId
   /** Resolved word pool for this run (capped to the tier's word limit). */
   dungeonWordIds: string[]
+  /** Backdrop shown for the whole run so the player always sees where they are. */
+  locationKey: string
 }
 
 export interface DungeonEvent {

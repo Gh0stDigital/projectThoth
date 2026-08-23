@@ -611,7 +611,8 @@ select:focus {
   inset: 0;
 }
 
-.battle-enemy-overlay {
+.battle-enemy-overlay,
+.explore-event-overlay {
   position: absolute;
   inset: 0;
   display: flex;
@@ -619,13 +620,28 @@ select:focus {
   justify-content: center;
 }
 
-.battle-enemy-overlay .asset-img {
+/* object-fit: contain (not cover) so the whole enemy/event art is always
+   visible instead of being cropped by the frame, and a squared frame
+   (not a circular clip) so nothing near the corners gets cut off. */
+.battle-enemy-overlay .asset-img,
+.explore-event-overlay .asset-img {
   position: static;
-  width: 46%;
-  height: 46%;
-  border-radius: 50%;
+  object-fit: contain;
+  border-radius: var(--radius-lg);
   border: 2px solid var(--border-strong);
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+  background: rgba(10, 12, 18, 0.4);
+}
+
+.battle-enemy-overlay .asset-img {
+  width: 64%;
+  height: 64%;
+}
+
+.explore-event-overlay .asset-img {
+  width: 42%;
+  height: 42%;
+  border-radius: var(--radius-md);
 }
 
 .scene-window .scene-tag {
@@ -719,6 +735,20 @@ select:focus {
 .totem-panel .avatar-img {
   width: 32px;
   flex-shrink: 0;
+}
+
+/* The big character portrait on the Totem screen — sized generously and
+   using object-fit: contain (not the shared .avatar-img cover) so the
+   whole character is always visible, never cropped at the edges. */
+.totem-hero-frame {
+  width: 62%;
+  max-width: 220px;
+  margin: 0 auto 12px;
+}
+
+.avatar-hero {
+  object-fit: contain;
+  background: var(--bg-panel-raised);
 }
 
 .totem-panel .stats {

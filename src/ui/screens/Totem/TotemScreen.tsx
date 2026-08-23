@@ -35,8 +35,8 @@ export function TotemScreen() {
       <TopBar title="Totem" onBack={() => goTo('menu')} />
 
       <div className="panel" style={{ textAlign: 'center' }}>
-        <div style={{ width: 96, height: 96, margin: '0 auto 10px' }}>
-          <AssetImage category="totems" assetKey={totem.avatarKey} alt={totem.name} className="avatar-img" />
+        <div className="totem-hero-frame">
+          <AssetImage category="totems" assetKey={totem.avatarKey} alt={totem.name} className="avatar-img avatar-hero" />
         </div>
 
         {renaming ? (
