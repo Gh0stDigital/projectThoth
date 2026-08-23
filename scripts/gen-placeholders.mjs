@@ -1,13 +1,16 @@
-// Generates neutral placeholder PNG art for every asset slot the game
-// references (src/config/assets.ts). No external dependencies — encodes
-// raw PNGs by hand (IHDR/IDAT/IEND) using Node's built-in zlib deflate.
+// Fills in neutral placeholder PNG art for any asset slot the game
+// references (src/config/assets.ts) that doesn't have a file yet. No
+// external dependencies — encodes raw PNGs by hand (IHDR/IDAT/IEND) using
+// Node's built-in zlib deflate.
 //
-// Re-run with `node scripts/gen-placeholders.mjs` any time asset keys
-// change. Replace the generated files under public/assets/** with real
-// artwork whenever it's ready — nothing else needs to change.
+// Only ever creates files that are missing — it never overwrites an
+// existing public/assets/** file, so replacing a placeholder with real
+// artwork is permanent: just commit the real PNG over the placeholder
+// and this script (which reruns on every `npm install`) will leave it
+// alone from then on.
 
 import { deflateSync } from 'node:zlib'
-import { writeFileSync, mkdirSync } from 'node:fs'
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -266,16 +269,27 @@ const accentShift = {
   fire: '#f2653f', water: '#4f9ef2', earth: '#8f6f3f', wind: '#bfe0f2', arcane: '#c15fe0',
 }
 
-let count = 0
+let generated = 0
+let skipped = 0
 for (const [category, def] of Object.entries(manifest)) {
   const dir = join(OUT_ROOT, category)
   mkdirSync(dir, { recursive: true })
   for (const [key, shape] of Object.entries(def.items)) {
+    const target = join(dir, `${key}.png`)
+    // Never clobber real artwork someone has dropped in to replace a
+    // placeholder — only fill in files that don't exist yet.
+    if (existsSync(target)) {
+      skipped++
+      continue
+    }
     const accent = accentShift[key] || def.palette.accent
     const png = drawPlaceholder({ bg: def.palette.bg, accent, shape })
-    writeFileSync(join(dir, `${key}.png`), png)
-    count++
+    writeFileSync(target, png)
+    generated++
   }
 }
 
-console.log(`Generated ${count} placeholder PNGs under ${OUT_ROOT}`)
+console.log(
+  `Generated ${generated} placeholder PNG(s) under ${OUT_ROOT}` +
+    (skipped > 0 ? ` (${skipped} already present — left untouched)` : ''),
+)
