@@ -22,20 +22,37 @@
   --accent-purple: #a58bd8;
   --accent-green: #6bdb8f;
   --accent-red: #e0654f;
+  /* Secondary "HUD" accent — thin borders, glows, scanline texture. Gold
+     stays the primary brand color; cyan is the sci-fi detailing layer. */
+  --accent-cyan: #4fe3f0;
+  --accent-cyan-dim: #2a8f9c;
+  --glow-cyan: rgba(79, 227, 240, 0.35);
+  --glow-gold: rgba(242, 193, 78, 0.3);
 
   --hp-color: #e0654f;
   --charge-color: #f2c14e;
   --xp-color: #5fa8e0;
   --plateau-color: #a58bd8;
 
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
 
   --font-body: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR',
     'Segoe UI', Roboto, sans-serif;
+  /* HUD/readout font for stats, levels, HP, timers — system monospace
+     only, no network font load. */
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Roboto Mono', 'Courier New', monospace;
 
   color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
 * {
@@ -46,17 +63,23 @@ html,
 body {
   margin: 0;
   padding: 0;
+  height: 100%;
   background: var(--bg-deep);
   color: var(--text-primary);
   font-family: var(--font-body);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  /* The app is a fixed-size single-viewport shell — only the active
+     screen's own content scrolls. This is what keeps every screen the
+     same size when navigating: nothing ever grows/shrinks the page
+     itself, so there's no jump or resize on screen changes. */
+  overflow: hidden;
 }
 
 #root {
   display: flex;
   justify-content: center;
-  min-height: 100dvh;
+  height: 100dvh;
 }
 
 button {
@@ -73,26 +96,53 @@ textarea {
 .app-shell {
   width: 100%;
   max-width: 430px;
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: linear-gradient(180deg, var(--bg-deep) 0%, #0d1017 100%);
   position: relative;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
+/* Faint ambient scanline texture — a light HUD touch, kept subtle enough
+   to never affect readability. */
+.app-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(79, 227, 240, 0.025) 0px,
+    rgba(79, 227, 240, 0.025) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Every screen fills the fixed shell and scrolls internally when its own
+   content is taller than the viewport — the shell itself never resizes.
+   min-height: 0 is what lets a flex child shrink below its content size
+   so overflow-y can actually kick in instead of the child just growing. */
 .screen {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 100dvh;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
   padding: max(14px, env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
   gap: 14px;
 }
 
+/* Kept as an alias — every .screen already scrolls consistently now,
+   this class no longer changes behavior but existing markup still works. */
 .screen-scroll {
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 /* ---- Typography ---- */
@@ -150,7 +200,8 @@ p {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: transform 0.08s ease, opacity 0.15s ease, background 0.15s ease;
+  transition: transform 0.08s ease, opacity 0.15s ease, background 0.15s ease, box-shadow 0.15s ease,
+    border-color 0.15s ease;
   min-height: 46px;
 }
 
@@ -162,12 +213,24 @@ p {
   opacity: 0.4;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
+}
+
+.btn:focus-visible {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 3px var(--glow-cyan);
 }
 
 .btn-primary {
   background: linear-gradient(180deg, #f2c14e, #d8a53a);
   color: #241a05;
   border-color: #d8a53a;
+  box-shadow: 0 0 14px -4px var(--glow-gold);
+}
+
+.btn-primary:active:not(:disabled) {
+  box-shadow: 0 0 18px -2px var(--glow-gold);
 }
 
 .btn-danger {
@@ -180,6 +243,11 @@ p {
   background: transparent;
   border-color: var(--border-soft);
   color: var(--text-secondary);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--accent-cyan-dim);
+  color: var(--text-primary);
 }
 
 .btn-block {
@@ -205,6 +273,20 @@ p {
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg);
   padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Thin HUD-style accent line along the top edge of every panel. */
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-cyan-dim), var(--accent-cyan) 40%, transparent 85%);
+  opacity: 0.7;
 }
 
 .card {
@@ -268,9 +350,11 @@ p {
   outline: none;
 }
 
+.field select:focus,
 .field input[type='text']:focus,
 .field textarea:focus {
-  border-color: var(--accent-gold-dim);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 3px var(--glow-cyan);
 }
 
 .field-error {
@@ -344,14 +428,21 @@ p {
   gap: 14px;
   background: var(--bg-panel);
   border: 1px solid var(--border-soft);
+  border-left: 2px solid var(--accent-cyan-dim);
   border-radius: var(--radius-lg);
   padding: 16px;
   cursor: pointer;
   text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
 }
 
 .menu-item:active {
   transform: scale(0.98);
+}
+
+.menu-item:hover {
+  border-left-color: var(--accent-cyan);
+  box-shadow: -2px 0 12px -4px var(--glow-cyan);
 }
 
 .menu-item .icon {
@@ -446,7 +537,9 @@ p {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+  color: var(--accent-cyan-dim);
 }
 
 .spell-card-list-item {
@@ -491,7 +584,8 @@ p {
   aspect-ratio: 1 / 0.82;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  border: 1px solid var(--border-soft);
+  border: 1px solid var(--accent-cyan-dim);
+  box-shadow: 0 0 22px -8px var(--glow-cyan), inset 0 0 0 1px rgba(79, 227, 240, 0.08);
   background: var(--bg-panel);
   flex-shrink: 0;
 }
@@ -545,8 +639,15 @@ p {
   padding: 8px 12px;
 }
 
+.progress-meter b {
+  font-family: var(--font-mono);
+  color: var(--accent-cyan);
+}
+
 .progress-meter .boss-status {
   font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
 }
 
 .progress-meter .boss-status.locked {
@@ -555,6 +656,17 @@ p {
 
 .progress-meter .boss-status.open {
   color: var(--accent-green);
+  animation: pulse-glow 2.2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    text-shadow: 0 0 4px rgba(107, 219, 143, 0.3);
+  }
+  50% {
+    text-shadow: 0 0 10px rgba(107, 219, 143, 0.8);
+  }
 }
 
 .typewriter-box {
@@ -618,6 +730,7 @@ p {
   align-items: center;
   gap: 6px;
   font-size: 11px;
+  font-family: var(--font-mono);
 }
 
 .action-bar {
@@ -731,6 +844,7 @@ p {
   align-items: center;
   gap: 8px;
   font-size: 12.5px;
+  font-family: var(--font-mono);
   color: var(--text-secondary);
 }
 
@@ -744,6 +858,7 @@ p {
   font-weight: 800;
   color: var(--accent-gold);
   margin-top: 6px;
+  text-shadow: 0 0 18px var(--glow-gold);
 }
 
 .challenge-prompt .prompt-label {
@@ -800,6 +915,7 @@ p {
 .stat-tile .value {
   font-size: 20px;
   font-weight: 800;
+  font-family: var(--font-mono);
   color: var(--accent-gold);
 }
 
@@ -869,6 +985,7 @@ p {
   color: var(--text-primary);
   display: block;
   font-size: 13px;
+  font-family: var(--font-mono);
 }
 
 .empty-state {
