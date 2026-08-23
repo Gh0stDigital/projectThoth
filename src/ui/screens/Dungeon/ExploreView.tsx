@@ -109,6 +109,8 @@ export function ExploreView() {
         </button>
       </div>
 
+      <TotemPanel totem={totem} />
+
       <div className="scene-window">
         <AssetImage category={event.imageCategory} assetKey={event.imageKey} alt={event.title} />
         <span className="scene-tag">{event.title}</span>
@@ -135,8 +137,6 @@ export function ExploreView() {
           ⚔️ Challenge the Boss
         </button>
       )}
-
-      <TotemPanel totem={totem} />
 
       {wordInfoOpen && <WordInfoPanel run={run} battle={null} onClose={toggleWordInfo} />}
     </div>
