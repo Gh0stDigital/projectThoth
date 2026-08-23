@@ -59,15 +59,19 @@ src/
     styles/     Single global stylesheet (dark theme, system fonts only —
                 no network font loads).
 scripts/
-  gen-placeholders.mjs   Generates every placeholder PNG under public/assets
-                         (no external deps — hand-rolled PNG encoder). Runs
-                         automatically via `npm install`'s postinstall hook,
-                         or manually with `npm run gen:assets`.
-public/assets/           Local placeholder art (generated, gitignored — see
-                         above), one folder per replaceable slot: locations,
-                         events, traps, treasure, totems, enemies, bosses,
-                         battlebg, spells. Drop in real PNGs with matching
-                         filenames to reskin — no code changes needed.
+  gen-placeholders.mjs   Fills in any missing placeholder PNG under
+                         public/assets (no external deps — hand-rolled PNG
+                         encoder). Runs automatically via `npm install`'s
+                         postinstall hook, or manually with `npm run
+                         gen:assets`. Never overwrites a file that already
+                         exists, so replacing a placeholder with real
+                         artwork is permanent.
+public/assets/           Local art, committed to the repo, one folder per
+                         replaceable slot: locations, events, traps,
+                         treasure, totems, enemies, bosses, battlebg,
+                         spells. Drop a real PNG in with the matching
+                         filename to replace a placeholder — no code
+                         changes needed, and it won't be regenerated over.
 ```
 
 ## Notes on scope
