@@ -6,6 +6,7 @@ import { AssetImage } from '@/ui/components/AssetImage'
 import { TypewriterText } from '@/ui/components/TypewriterText'
 import { ProgressMeter } from '@/ui/components/ProgressMeter'
 import { TotemPanel } from '@/ui/components/TotemPanel'
+import { ChallengeModal } from '@/ui/components/ChallengeModal'
 import { ChallengeView } from './ChallengeView'
 import { WordInfoPanel } from './WordInfoPanel'
 import { ItemPanel } from './ItemPanel'
@@ -156,7 +157,9 @@ export function ExploreView() {
       )}
 
       {run.phase === 'challenge' && event?.challenge && (
-        <ChallengeView challenge={event.challenge} onSubmit={submitEventChallengeAnswer} />
+        <ChallengeModal>
+          <ChallengeView challenge={event.challenge} onSubmit={submitEventChallengeAnswer} />
+        </ChallengeModal>
       )}
 
       {run.phase === 'resolution' && (

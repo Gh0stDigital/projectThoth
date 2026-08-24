@@ -4,6 +4,7 @@ import { usePersistentStore } from '@/state/persistentStore'
 import { TopBar } from '@/ui/components/TopBar'
 import { AssetImage } from '@/ui/components/AssetImage'
 import { Bar } from '@/ui/components/Bar'
+import { SlidePanel } from '@/ui/components/SlidePanel'
 import { totemBalance } from '@/config/balance'
 
 export function TotemScreen() {
@@ -17,6 +18,7 @@ export function TotemScreen() {
   const totem = totems.find((t) => t.id === activeTotemId) ?? totems[0]
   const [renaming, setRenaming] = useState(false)
   const [nameDraft, setNameDraft] = useState(totem?.name ?? '')
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   if (!totem) {
     return (
@@ -31,7 +33,7 @@ export function TotemScreen() {
   const xpNeeded = totemBalance.xpToNextLevel(totem.level)
 
   return (
-    <div className="screen screen-scroll">
+    <div className="screen">
       <TopBar title="Totem" onBack={() => goTo('menu')} />
 
       <div className="panel" style={{ textAlign: 'center' }}>
@@ -80,39 +82,68 @@ export function TotemScreen() {
         </div>
       </div>
 
-      <h3>Equipped Spell Set (Battle Deck)</h3>
-      <p className="faint" style={{ marginTop: -6 }}>
-        These are the Spell cards you'll be able to attack with in battle.
-      </p>
-
-      {spellSets.length === 0 && (
-        <div className="empty-state">
-          <span className="glyph">🗂️</span>
-          <p>No Spell Sets yet — create one from the Compendium first.</p>
-        </div>
-      )}
-
-      <div className="list">
-        {spellSets.map((set) => (
-          <button
-            key={set.id}
-            className="card row"
-            style={{ width: '100%', textAlign: 'left', borderColor: set.id === totem.equippedSpellSetId ? 'var(--accent-gold)' : undefined }}
-            onClick={() => equipTotemSpellSet(totem.id, set.id)}
-          >
-            <div>
-              <div style={{ fontWeight: 700 }}>{set.name}</div>
-              <div className="faint">{set.spellIds.length} Spells</div>
-            </div>
-            {set.id === totem.equippedSpellSetId ? <span style={{ color: 'var(--accent-gold)' }}>✓ Equipped</span> : <span className="faint">Equip</span>}
-          </button>
-        ))}
+      <div className="field">
+        <label>Battle Deck (Equipped Spell Set)</label>
+        <button className="card row" style={{ width: '100%', textAlign: 'left' }} onClick={() => setPickerOpen(true)}>
+          <div>
+            <div style={{ fontWeight: 700 }}>{equippedSet ? equippedSet.name : 'None equipped'}</div>
+            <div className="faint">{equippedSet ? `${equippedSet.spellIds.length} Spells` : 'Tap to choose a Spell Set'}</div>
+          </div>
+          <span className="faint">Change</span>
+        </button>
       </div>
 
-      {equippedSet && (
-        <button className="btn btn-ghost btn-block" onClick={() => equipTotemSpellSet(totem.id, null)}>
-          Unequip Spell Set
-        </button>
+      <div style={{ flex: 1 }} />
+
+      {pickerOpen && (
+        <SlidePanel title="Choose Spell Set" onClose={() => setPickerOpen(false)}>
+          {spellSets.length === 0 && (
+            <div className="empty-state">
+              <span className="glyph">🗂️</span>
+              <p>No Spell Sets yet — create one from the Compendium first.</p>
+            </div>
+          )}
+
+          <div className="list">
+            {spellSets.map((set) => (
+              <button
+                key={set.id}
+                className="card row"
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  borderColor: set.id === totem.equippedSpellSetId ? 'var(--accent-gold)' : undefined,
+                }}
+                onClick={() => {
+                  equipTotemSpellSet(totem.id, set.id)
+                  setPickerOpen(false)
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700 }}>{set.name}</div>
+                  <div className="faint">{set.spellIds.length} Spells</div>
+                </div>
+                {set.id === totem.equippedSpellSetId ? (
+                  <span style={{ color: 'var(--accent-gold)' }}>✓ Equipped</span>
+                ) : (
+                  <span className="faint">Equip</span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {equippedSet && (
+            <button
+              className="btn btn-ghost btn-block"
+              onClick={() => {
+                equipTotemSpellSet(totem.id, null)
+                setPickerOpen(false)
+              }}
+            >
+              Unequip Spell Set
+            </button>
+          )}
+        </SlidePanel>
       )}
     </div>
   )

@@ -6,6 +6,7 @@ import { AssetImage } from '@/ui/components/AssetImage'
 import { Bar } from '@/ui/components/Bar'
 import { SpellCard } from '@/ui/components/SpellCard'
 import { TotemPanel } from '@/ui/components/TotemPanel'
+import { ChallengeModal } from '@/ui/components/ChallengeModal'
 import { ChallengeView } from './ChallengeView'
 import { WordInfoPanel } from './WordInfoPanel'
 
@@ -102,7 +103,9 @@ export function BattleView() {
       )}
 
       {battle.phase === 'player_challenge' && battle.activeChallenge && (
-        <ChallengeView challenge={battle.activeChallenge} onSubmit={submitAttackAnswer} submitLabel="Attack!" />
+        <ChallengeModal>
+          <ChallengeView challenge={battle.activeChallenge} onSubmit={submitAttackAnswer} submitLabel="Attack!" />
+        </ChallengeModal>
       )}
 
       {battle.phase === 'player_resolve' && (
@@ -115,7 +118,7 @@ export function BattleView() {
       )}
 
       {battle.phase === 'enemy_challenge' && battle.activeChallenge && battle.timer && (
-        <>
+        <ChallengeModal>
           <div className="timer-row">
             <span>⏱ {Math.ceil(battle.timer.remainingSeconds)}s</span>
             <div style={{ flex: 1 }}>
@@ -123,7 +126,7 @@ export function BattleView() {
             </div>
           </div>
           <ChallengeView challenge={battle.activeChallenge} onSubmit={submitDefenseAnswer} submitLabel="Defend!" />
-        </>
+        </ChallengeModal>
       )}
 
       {battle.phase === 'enemy_resolve' && (

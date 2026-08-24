@@ -5,11 +5,13 @@ import { Bar } from './Bar'
 interface TotemPanelProps {
   totem: Totem
   effectText?: string
+  /** Smaller footprint for screens tight on vertical space (e.g. Dungeon config). */
+  compact?: boolean
 }
 
-export function TotemPanel({ totem, effectText }: TotemPanelProps) {
+export function TotemPanel({ totem, effectText, compact }: TotemPanelProps) {
   return (
-    <div className="totem-panel">
+    <div className={`totem-panel${compact ? ' compact' : ''}`}>
       <span className="totem-panel-tag">Your Totem</span>
       <AssetImage category="totems" assetKey={totem.avatarKey} alt={totem.name} className="avatar-img avatar-hero" />
       <div className="stats">

@@ -335,7 +335,7 @@ p {
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 16px;
   outline: none;
 }
 
@@ -346,15 +346,20 @@ p {
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 16px;
   outline: none;
 }
 
 /* No focus glow/outline on text inputs — the answer box during a timed
-   challenge needs to stay fully legible, not ringed or obscured. */
+   challenge needs to stay fully legible, not ringed or obscured.
+   font-size: 16px on every text input/textarea/select (including ones
+   outside .field, which don't get the rules above) is the standard fix
+   for iOS Safari's auto-zoom-on-focus: it only zooms the viewport when
+   the focused field's computed font-size is below 16px. */
 input[type='text'],
 textarea,
 select {
+  font-size: 16px;
   outline: none;
 }
 
@@ -1480,4 +1485,98 @@ select:focus {
   font-size: 13px;
   color: var(--text-secondary);
   font-style: italic;
+}
+
+/* ---- Challenge modal (vocabulary answer popup) ---- */
+
+.challenge-modal-backdrop {
+  /* Slightly higher than the informational SlidePanel popups so a
+     challenge can be shown on top of e.g. the boss plateau banner. */
+  z-index: 45;
+  align-items: center;
+}
+
+.challenge-modal-panel {
+  max-height: none;
+  border-radius: var(--radius-lg);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+/* The prompt already renders its own .panel chrome (ChallengeView reuses
+   it inline elsewhere) — flatten that inside the modal so there's one
+   card, not two nested ones. */
+.challenge-modal-panel .challenge-prompt {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 4px 4px 0;
+}
+
+.challenge-modal-panel .challenge-prompt::before {
+  display: none;
+}
+
+.challenge-modal-panel .timer-row {
+  margin-bottom: -4px;
+}
+
+/* ---- Compact/no-scroll screen utilities ---- */
+
+/* Tighter padding/gap for screens that need to fit one viewport without
+   scrolling (Dungeon config). Main Menu and Totem are compact enough with
+   the default .screen spacing once their variable-length lists move into
+   popups; this one shaves a bit more since it has the most sections. */
+.screen-tight {
+  padding-top: max(10px, env(safe-area-inset-top));
+  gap: 10px;
+}
+
+.scene-window.compact {
+  aspect-ratio: 1 / 0.5;
+}
+
+.totem-panel.compact {
+  padding: 10px 12px 8px;
+  gap: 12px;
+}
+
+.totem-panel.compact .avatar-img {
+  width: 30%;
+  max-width: 84px;
+  min-width: 64px;
+}
+
+.totem-panel.compact .name-row {
+  font-size: 14px;
+}
+
+/* Two selects side by side instead of stacked full-width fields. */
+.config-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Tier cards as a compact horizontal row instead of a vertical stack. */
+.tier-card-list.row {
+  flex-direction: row;
+  gap: 6px;
+}
+
+.tier-card-list.row .tier-card {
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 6px;
+  gap: 2px;
+}
+
+.tier-card-list.row .tier-card-name {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.tier-card-list.row .tier-card-meta {
+  font-size: 10px;
 }

@@ -37,7 +37,7 @@ export function DungeonConfigScreen() {
   }
 
   return (
-    <div className="screen screen-scroll">
+    <div className="screen screen-tight">
       <TopBar title="Dungeon" onBack={() => goTo('menu')} />
 
       {!totem && <p className="muted">Create a Totem first.</p>}
@@ -56,31 +56,45 @@ export function DungeonConfigScreen() {
           <h2 className="dungeon-name">{tier.name}</h2>
 
           {/* 2. Dungeon entrance image */}
-          <div className="scene-window">
+          <div className="scene-window compact">
             <AssetImage category="locations" assetKey="default" alt="Dungeon entrance" />
             <span className="scene-tag">{tier.label}</span>
           </div>
 
           {/* 3. Active Totem — avatar + info, plus which deck it fights with */}
-          <TotemPanel totem={totem} />
+          <TotemPanel totem={totem} compact />
 
-          <div className="field">
-            <label htmlFor="totem-set-select">Battle Deck (Totem Spell Set)</label>
-            <select id="totem-set-select" value={totemSetId ?? ''} onChange={(e) => setTotemSetId(e.target.value || null)}>
-              <option value="">— choose a set —</option>
-              {spellSets.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.spellIds.length})
-                </option>
-              ))}
-            </select>
-            <p className="faint">The Spell cards your Totem can attack with in battle.</p>
+          <div className="config-row">
+            <div className="field">
+              <label htmlFor="totem-set-select">Battle Deck</label>
+              <select id="totem-set-select" value={totemSetId ?? ''} onChange={(e) => setTotemSetId(e.target.value || null)}>
+                <option value="">— choose —</option>
+                {spellSets.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.spellIds.length})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 6. Dungeon Tendency — the word pool this run draws from */}
+            <div className="field">
+              <label htmlFor="dungeon-set-select">Tendency (Words)</label>
+              <select id="dungeon-set-select" value={dungeonSetId ?? ''} onChange={(e) => setDungeonSetId(e.target.value || null)}>
+                <option value="">— choose —</option>
+                {spellSets.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.spellIds.length})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* 4. Dungeon tier selection */}
           <div className="field">
             <label>Dungeon Tier</label>
-            <div className="tier-card-list">
+            <div className="tier-card-list row">
               {dungeonTiers.map((t) => (
                 <button
                   key={t.id}
@@ -104,36 +118,22 @@ export function DungeonConfigScreen() {
                 <div className="value">{tier.wordLimit}</div>
               </div>
               <div className="stat-tile">
-                <div className="faint">Boss Unlocks After</div>
-                <div className="value">~{tier.minEventsBeforeBossEligible} events</div>
+                <div className="faint">Boss Unlocks</div>
+                <div className="value">~{tier.minEventsBeforeBossEligible} evts</div>
               </div>
               <div className="stat-tile">
-                <div className="faint">Enemy Damage</div>
+                <div className="faint">Enemy Dmg</div>
                 <div className="value">×{tier.enemyDamageMultiplier}</div>
               </div>
             </div>
-          </div>
-
-          {/* 6. Dungeon Tendency — the word pool this run draws from */}
-          <div className="field">
-            <label htmlFor="dungeon-set-select">Dungeon Tendency (Word Set)</label>
-            <select id="dungeon-set-select" value={dungeonSetId ?? ''} onChange={(e) => setDungeonSetId(e.target.value || null)}>
-              <option value="">— choose a set —</option>
-              {spellSets.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.spellIds.length})
-                </option>
-              ))}
-            </select>
-            {dungeonSet ? (
+            {dungeonSet && (
               <p className="faint">
-                Pool: {Math.min(dungeonSet.spellIds.length, tier.wordLimit)} of {dungeonSet.spellIds.length} words in
-                this set will be used. May be the same set as your Battle Deck, or different for mixed practice.
+                Pool: {Math.min(dungeonSet.spellIds.length, tier.wordLimit)} of {dungeonSet.spellIds.length} words used.
               </p>
-            ) : (
-              <p className="faint">The words this dungeon leans toward — its events and challenges draw from here.</p>
             )}
           </div>
+
+          <div style={{ flex: 1 }} />
 
           {/* 7. Enter dungeon */}
           <button className="btn btn-primary btn-block" disabled={!canStart} onClick={handleStart}>
