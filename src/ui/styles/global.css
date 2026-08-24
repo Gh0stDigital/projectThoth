@@ -1580,3 +1580,108 @@ select:focus {
 .tier-card-list.row .tier-card-meta {
   font-size: 10px;
 }
+
+/* ---- Dungeon progress track (map-style, sits above the scene image) ---- */
+
+.dungeon-track {
+  padding: 2px 4px 0;
+}
+
+.dungeon-track-line {
+  position: relative;
+  height: 4px;
+  margin: 0 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+}
+
+.dungeon-track-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-cyan-dim), var(--accent-cyan));
+  box-shadow: 0 0 8px -1px var(--glow-cyan);
+  transition: width 0.4s ease;
+}
+
+/* "You are here" marker riding the filled edge of the track. */
+.dungeon-track-marker {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--accent-gold);
+  box-shadow: 0 0 0 3px rgba(242, 193, 78, 0.25);
+  animation: track-marker-pulse 2s ease-in-out infinite;
+  transition: left 0.4s ease;
+}
+
+.dungeon-track-nodes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: -2px;
+}
+
+.dungeon-track-node {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-panel-raised);
+  border: 2px solid var(--border-strong);
+  flex-shrink: 0;
+}
+
+/* Alternate each waypoint up/down off the line — a winding trail rather
+   than a flat row of dots. */
+.dungeon-track-nodes .dungeon-track-node:nth-child(odd) {
+  margin-top: -5px;
+}
+
+.dungeon-track-nodes .dungeon-track-node:nth-child(even) {
+  margin-top: 9px;
+}
+
+.dungeon-track-node.cleared {
+  background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 8px -1px var(--glow-cyan);
+}
+
+.dungeon-track-node.boss {
+  width: 22px;
+  height: 22px;
+  margin-top: -6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  border-radius: 8px;
+  line-height: 1;
+}
+
+.dungeon-track-node.boss.locked {
+  background: var(--bg-panel-raised);
+  border-color: var(--border-strong);
+  opacity: 0.6;
+}
+
+.dungeon-track-node.boss.open {
+  background: linear-gradient(180deg, #f2c14e, #d8a53a);
+  border-color: #d8a53a;
+  animation: track-marker-pulse 2s ease-in-out infinite;
+}
+
+@keyframes track-marker-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 6px -1px var(--glow-gold);
+  }
+  50% {
+    box-shadow: 0 0 16px 2px var(--glow-gold);
+  }
+}

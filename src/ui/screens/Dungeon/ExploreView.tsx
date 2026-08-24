@@ -5,6 +5,7 @@ import { usePersistentStore } from '@/state/persistentStore'
 import { AssetImage } from '@/ui/components/AssetImage'
 import { TypewriterText } from '@/ui/components/TypewriterText'
 import { ProgressMeter } from '@/ui/components/ProgressMeter'
+import { DungeonProgressTrack } from '@/ui/components/DungeonProgressTrack'
 import { TotemPanel } from '@/ui/components/TotemPanel'
 import { ChallengeModal } from '@/ui/components/ChallengeModal'
 import { ChallengeView } from './ChallengeView'
@@ -122,6 +123,8 @@ export function ExploreView() {
           ✕ Exit Dungeon
         </button>
       </div>
+
+      <DungeonProgressTrack challenged={challenged} total={total} bossUnlocked={run.bossUnlocked} />
 
       <div className="scene-window">
         <AssetImage category="locations" assetKey={run.config.locationKey} alt="Dungeon location" />
