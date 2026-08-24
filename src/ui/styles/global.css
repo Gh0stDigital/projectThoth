@@ -1532,7 +1532,7 @@ select:focus {
 }
 
 .scene-window.compact {
-  aspect-ratio: 1 / 0.5;
+  height: 19dvh;
 }
 
 .totem-panel.compact {
@@ -1683,5 +1683,198 @@ select:focus {
   }
   50% {
     box-shadow: 0 0 16px 2px var(--glow-gold);
+  }
+}
+
+/* ---- Dungeon in-run compaction (keeps every phase inside one viewport) ---- */
+
+/* In-run scene images are the layout's shock absorber: they take a
+   generous share of the viewport when there's room, but are allowed to
+   shrink (flex-shrink + an explicit min-height, which a flex column
+   otherwise blocks) so a tall room/battle never pushes content
+   off-screen on a shorter phone. */
+.scene-window.dungeon,
+.scene-window.battle,
+.scene-window.compact {
+  aspect-ratio: auto;
+  flex: 0 1 auto;
+  min-height: 78px;
+}
+
+.scene-window.dungeon {
+  height: 25dvh;
+}
+
+.scene-window.battle {
+  height: 24dvh;
+}
+
+.room-flavor h3 {
+  font-size: 13px;
+}
+
+.room-flavor p {
+  font-size: 12.5px;
+}
+
+.room-action {
+  min-height: 68px;
+  padding: 9px 10px;
+}
+
+.room-action .icon {
+  font-size: 17px;
+}
+
+.room-action .label {
+  font-size: 14px;
+}
+
+.room-action .sub {
+  font-size: 10.5px;
+}
+
+/* ---- Move: dice-roll popup ---- */
+
+.move-roll-panel {
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding-top: 22px;
+}
+
+.move-roll-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.move-roll-die {
+  font-size: 76px;
+  line-height: 1;
+  color: var(--accent-gold);
+  text-shadow: 0 0 22px var(--glow-gold);
+}
+
+.move-roll-die.rolling {
+  animation: die-tumble 0.32s linear infinite;
+}
+
+.move-roll-die.settled {
+  animation: die-land 0.35s ease-out;
+}
+
+.move-roll-result {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 14px var(--glow-cyan);
+}
+
+@keyframes die-tumble {
+  0% {
+    transform: rotate(-14deg) translateY(0) scale(1);
+  }
+  50% {
+    transform: rotate(14deg) translateY(-8px) scale(1.06);
+  }
+  100% {
+    transform: rotate(-14deg) translateY(0) scale(1);
+  }
+}
+
+@keyframes die-land {
+  0% {
+    transform: scale(1.35) rotate(8deg);
+  }
+  60% {
+    transform: scale(0.94) rotate(-2deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Short-viewport tightening: on phones under ~800px tall the default
+   spacing/padding is what pushes dungeon screens over the edge, so trim
+   the flexible chrome rather than letting the page scroll. */
+@media (max-height: 900px) {
+  .screen {
+    gap: 9px;
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
+
+  .totem-panel.compact {
+    padding: 8px 10px 6px;
+  }
+
+  .totem-panel.compact .avatar-img {
+    max-width: 68px;
+    min-width: 52px;
+  }
+
+  .room-flavor h3 {
+    font-size: 12px;
+  }
+
+  .room-flavor p {
+    font-size: 11.5px;
+  }
+
+  .room-action {
+    min-height: 58px;
+    padding: 7px 9px;
+  }
+
+  .room-action .sub {
+    display: none;
+  }
+
+  .dungeon-info-panel {
+    padding: 10px;
+    gap: 7px;
+  }
+
+  .stat-tile {
+    padding: 6px 9px;
+  }
+
+  .stat-tile .value {
+    font-size: 16px;
+  }
+
+  .progress-meter {
+    padding: 6px 10px;
+    font-size: 11.5px;
+  }
+}
+
+/* Very short viewports (iPhone SE and similar): the Dungeon config screen
+   carries the most sections, so drop its most expendable chrome — the
+   flavor line and the tier subtitle — rather than scrolling. */
+@media (max-height: 700px) {
+  .screen-tight {
+    gap: 7px;
+  }
+
+  .dungeon-name {
+    font-size: 18px;
+  }
+
+  .dungeon-info-desc {
+    display: none;
+  }
+
+  .tier-card-list.row .tier-card-meta {
+    display: none;
+  }
+
+  .field label {
+    font-size: 12px;
+  }
+
+  .stat-tile .value {
+    font-size: 15px;
   }
 }

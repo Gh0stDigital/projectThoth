@@ -57,7 +57,7 @@ export function BattleView() {
         </button>
       </div>
 
-      <div className="scene-window">
+      <div className="scene-window battle">
         <AssetImage category="battlebg" assetKey={battle.enemy.battleBgKey} alt="battle background" />
         <div className="battle-enemy-overlay">
           <AssetImage category={battle.enemy.imageCategory} assetKey={battle.enemy.imageKey} alt={battle.enemy.name} />
@@ -65,7 +65,7 @@ export function BattleView() {
         <span className="scene-tag">{battle.enemy.name}</span>
       </div>
 
-      <TotemPanel totem={totem} />
+      <TotemPanel totem={totem} compact />
 
       <div className="enemy-hp-row">
         <div className="row">

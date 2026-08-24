@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { DungeonEventAction, DungeonEvent, DungeonRunState } from '@/domain/dungeon'
 import { useDungeonStore, challengedCount } from '@/state/dungeonStore'
 import { usePersistentStore } from '@/state/persistentStore'
@@ -8,6 +8,7 @@ import { ProgressMeter } from '@/ui/components/ProgressMeter'
 import { DungeonProgressTrack } from '@/ui/components/DungeonProgressTrack'
 import { TotemPanel } from '@/ui/components/TotemPanel'
 import { ChallengeModal } from '@/ui/components/ChallengeModal'
+import { MoveRollModal } from '@/ui/components/MoveRollModal'
 import { ChallengeView } from './ChallengeView'
 import { WordInfoPanel } from './WordInfoPanel'
 import { ItemPanel } from './ItemPanel'
@@ -107,8 +108,20 @@ export function ExploreView() {
   const totem = totems.find((t) => t.id === run.config.totemId)!
   const totemSet = spellSets.find((s) => s.id === run.config.totemSpellSetId) ?? null
 
+  // The Move action rolls a die in a popup; the underlying event is
+  // generated immediately so the roll can reveal what was found, but the
+  // player stays on the modal until they dismiss it.
+  const [rolling, setRolling] = useState(false)
+  const handleMove = useCallback(() => {
+    setRolling(true)
+    moveToNextEvent()
+  }, [moveToNextEvent])
+
   const event = run.currentEvent
-  const inRoom = run.phase === 'room'
+  // Treat the screen as "still in the room" while the die is rolling: the
+  // next event is already generated (so the roll can name it), but
+  // revealing it behind the modal would spoil the roll.
+  const inRoom = run.phase === 'room' || rolling
   if (!inRoom && !event) return null
 
   const challenged = challengedCount(run)
@@ -126,9 +139,9 @@ export function ExploreView() {
 
       <DungeonProgressTrack challenged={challenged} total={total} bossUnlocked={run.bossUnlocked} />
 
-      <div className="scene-window">
+      <div className="scene-window dungeon">
         <AssetImage category="locations" assetKey={run.config.locationKey} alt="Dungeon location" />
-        {event && (
+        {event && !inRoom && (
           <div className="explore-event-overlay">
             <AssetImage category={event.imageCategory} assetKey={event.imageKey} alt={event.title} />
           </div>
@@ -138,16 +151,16 @@ export function ExploreView() {
         </span>
       </div>
 
-      <TotemPanel totem={totem} />
+      <TotemPanel totem={totem} compact />
 
       <ProgressMeter challenged={challenged} total={total} bossUnlocked={run.bossUnlocked} onOpenWordInfo={toggleWordInfo} />
 
-      {inRoom && (
+      {inRoom && run.phase === 'room' && (
         <RoomActions
           roomKind={run.roomKind}
           notice={run.roomNotice}
           bossUnlocked={run.bossUnlocked}
-          onMove={moveToNextEvent}
+          onMove={handleMove}
           onCheckWords={() => openPanel('words')}
           onUseItem={() => openPanel('items')}
           onStatus={() => openPanel('status')}
@@ -155,7 +168,7 @@ export function ExploreView() {
         />
       )}
 
-      {run.phase === 'event' && event && (
+      {run.phase === 'event' && event && !rolling && (
         <EventBody key={event.id} event={event} charsPerSecond={charsPerSecond} onChooseAction={chooseEventAction} />
       )}
 
@@ -176,6 +189,8 @@ export function ExploreView() {
           ⚔️ Challenge the Boss
         </button>
       )}
+
+      {rolling && <MoveRollModal resultTitle={event?.title ?? null} onDone={() => setRolling(false)} />}
 
       {activePanel === 'words' && <WordInfoPanel run={run} battle={null} onClose={closePanel} />}
       {activePanel === 'items' && <ItemPanel inventory={inventory} onUse={useItem} onClose={closePanel} />}
