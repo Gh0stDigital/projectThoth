@@ -4,13 +4,18 @@ import { Bar } from '@/ui/components/Bar'
 import { AssetImage } from '@/ui/components/AssetImage'
 import { pickFlavor } from '@/config/assets'
 import { SpellEditorForm } from './SpellEditorForm'
+import { SpellImportPanel } from './SpellImportPanel'
 import type { Spell } from '@/domain/spell'
 
 export function SpellListTab() {
   const spells = usePersistentStore((s) => s.spells)
   const deleteSpell = usePersistentStore((s) => s.deleteSpell)
-  const [editing, setEditing] = useState<'new' | Spell | null>(null)
+  const [editing, setEditing] = useState<'new' | 'import' | Spell | null>(null)
   const [query, setQuery] = useState('')
+
+  if (editing === 'import') {
+    return <SpellImportPanel onDone={() => setEditing(null)} onCancel={() => setEditing(null)} />
+  }
 
   if (editing) {
     return (
@@ -28,9 +33,14 @@ export function SpellListTab() {
 
   return (
     <div className="list">
-      <button className="btn btn-primary btn-block" onClick={() => setEditing('new')}>
-        + New Spell Word
-      </button>
+      <div className="btn-row">
+        <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => setEditing('new')}>
+          + New Spell Word
+        </button>
+        <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setEditing('import')}>
+          📥 Batch Import
+        </button>
+      </div>
 
       {spells.length > 0 && (
         <input

@@ -78,6 +78,8 @@ function loadInitial(): PersistedData {
 
 export interface PersistentStore extends PersistedData {
   createSpell(input: NewSpellInput): Spell
+  /** Creates many Spells in one update (used by batch import). */
+  bulkCreateSpells(inputs: NewSpellInput[]): Spell[]
   editSpell(id: string, patch: SpellEditInput): void
   deleteSpell(id: string): void
   replaceSpells(updater: (spells: Spell[]) => Spell[]): void
@@ -111,6 +113,16 @@ export const usePersistentStore = create<PersistentStore>()((set, get) => ({
       return { spells }
     })
     return created!
+  },
+  bulkCreateSpells(inputs) {
+    let created: Spell[] = []
+    set((state) => {
+      let spells = state.spells
+      for (const input of inputs) spells = addSpell(spells, input)
+      created = spells.slice(spells.length - inputs.length)
+      return { spells }
+    })
+    return created
   },
   editSpell(id, patch) {
     set((state) => ({ spells: editSpell(state.spells, id, patch) }))
