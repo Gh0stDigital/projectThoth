@@ -149,6 +149,7 @@ export function ExploreView() {
         <span className="scene-tag">
           {inRoom ? (run.roomKind === 'entrance' ? 'Entrance' : 'Intermission') : event!.title}
         </span>
+        {rolling && <MoveRollModal resultTitle={event?.title ?? null} onDone={() => setRolling(false)} />}
       </div>
 
       <TotemPanel totem={totem} compact />
@@ -189,8 +190,6 @@ export function ExploreView() {
           ⚔️ Challenge the Boss
         </button>
       )}
-
-      {rolling && <MoveRollModal resultTitle={event?.title ?? null} onDone={() => setRolling(false)} />}
 
       {activePanel === 'words' && <WordInfoPanel run={run} battle={null} onClose={closePanel} />}
       {activePanel === 'items' && <ItemPanel inventory={inventory} onUse={useItem} onClose={closePanel} />}

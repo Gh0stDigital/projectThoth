@@ -58,7 +58,7 @@ export function BattleView() {
       </div>
 
       <div className="scene-window battle">
-        <AssetImage category="battlebg" assetKey={battle.enemy.battleBgKey} alt="battle background" />
+        <AssetImage category="locations" assetKey={run.config.locationKey} alt="Dungeon location" />
         <div className="battle-enemy-overlay">
           <AssetImage category={battle.enemy.imageCategory} assetKey={battle.enemy.imageKey} alt={battle.enemy.name} />
         </div>

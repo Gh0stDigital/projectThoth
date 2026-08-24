@@ -13,10 +13,11 @@ interface MoveRollModalProps {
 }
 
 /**
- * Dice-roll popup shown when the player chooses Move. The die tumbles for
- * a beat, settles on a face, then reveals what lies ahead — turning the
- * "advance to the next event" step into a visible roll of fate rather
- * than an instant jump.
+ * Dice-roll overlay shown when the player chooses Move. Renders *inside*
+ * the scene window (as an absolutely-positioned layer over the location
+ * art) rather than as a full-screen sheet, so the roll reads as something
+ * happening in the room itself. The die tumbles for a beat, settles, then
+ * reveals what lies ahead.
  */
 export function MoveRollModal({ resultTitle, onDone }: MoveRollModalProps) {
   const [face, setFace] = useState(0)
@@ -39,17 +40,15 @@ export function MoveRollModal({ resultTitle, onDone }: MoveRollModalProps) {
   }, [])
 
   return (
-    <div className="overlay-backdrop challenge-modal-backdrop">
-      <div className="slide-panel challenge-modal-panel move-roll-panel">
-        <div className="move-roll-label">{settled ? 'You press onward…' : 'Rolling…'}</div>
-        <div className={`move-roll-die${settled ? ' settled' : ' rolling'}`} aria-live="polite">
-          {DIE_FACES[face]}
-        </div>
-        {settled && resultTitle && <div className="move-roll-result">{resultTitle}</div>}
-        <button className="btn btn-primary btn-block" disabled={!settled} onClick={onDone}>
-          {settled ? 'Continue →' : '…'}
-        </button>
+    <div className="move-roll-overlay">
+      <div className="move-roll-label">{settled ? 'You press onward…' : 'Rolling…'}</div>
+      <div className={`move-roll-die${settled ? ' settled' : ' rolling'}`} aria-live="polite">
+        {DIE_FACES[face]}
       </div>
+      {settled && resultTitle && <div className="move-roll-result">{resultTitle}</div>}
+      <button className="btn btn-primary btn-sm move-roll-btn" disabled={!settled} onClick={onDone}>
+        {settled ? 'Continue →' : '…'}
+      </button>
     </div>
   )
 }

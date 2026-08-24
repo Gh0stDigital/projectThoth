@@ -121,10 +121,13 @@ textarea {
   z-index: 0;
 }
 
-/* Every screen fills the fixed shell and scrolls internally when its own
-   content is taller than the viewport — the shell itself never resizes.
-   min-height: 0 is what lets a flex child shrink below its content size
-   so overflow-y can actually kick in instead of the child just growing. */
+/* Screens are fixed panes by default: they fill the shell and never
+   scroll. overflow:hidden (not auto) is deliberate — with `auto`, iOS
+   still rubber-bands and drags the pane around on touch even when the
+   content fits exactly, which reads as the whole UI sliding under your
+   finger. Only screens that opt in via .screen-scroll may scroll.
+   min-height: 0 lets this flex child shrink below its content size so
+   its own children can absorb the squeeze instead of overflowing. */
 .screen {
   position: relative;
   z-index: 1;
@@ -132,17 +135,20 @@ textarea {
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
   padding: max(14px, env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
   gap: 14px;
 }
 
-/* Kept as an alias — every .screen already scrolls consistently now,
-   this class no longer changes behavior but existing markup still works. */
+/* Opt-in scrolling, for screens whose whole purpose is browsing a list
+   (Compendium, Records, run Results). */
 .screen-scroll {
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
 }
 
 /* ---- Typography ---- */
@@ -1734,27 +1740,37 @@ select:focus {
   font-size: 10.5px;
 }
 
-/* ---- Move: dice-roll popup ---- */
+/* ---- Move: dice-roll overlay (rendered inside the scene window) ---- */
 
-.move-roll-panel {
+.move-roll-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  gap: 6px;
   text-align: center;
-  gap: 10px;
-  padding-top: 22px;
+  /* Light scrim so the location art still reads through the roll. */
+  background: rgba(10, 12, 18, 0.55);
+  backdrop-filter: blur(2px);
+  animation: roll-overlay-in 0.18s ease-out;
 }
 
 .move-roll-label {
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-secondary);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
 }
 
 .move-roll-die {
-  font-size: 76px;
+  font-size: 58px;
   line-height: 1;
   color: var(--accent-gold);
-  text-shadow: 0 0 22px var(--glow-gold);
+  text-shadow: 0 0 22px var(--glow-gold), 0 2px 6px rgba(0, 0, 0, 0.8);
 }
 
 .move-roll-die.rolling {
@@ -1766,10 +1782,24 @@ select:focus {
 }
 
 .move-roll-result {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--accent-cyan);
-  text-shadow: 0 0 14px var(--glow-cyan);
+  text-shadow: 0 0 14px var(--glow-cyan), 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+.move-roll-btn {
+  margin-top: 4px;
+  min-width: 130px;
+}
+
+@keyframes roll-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes die-tumble {
@@ -1856,6 +1886,38 @@ select:focus {
 @media (max-height: 700px) {
   .screen-tight {
     gap: 7px;
+  }
+
+  /* Main Menu is a fixed pane now, so it has to fit the shortest phones
+     too — trim the title block and menu-tile padding rather than clip. */
+  .menu-title {
+    padding: 8px 0 2px;
+  }
+
+  .menu-title .glyph {
+    font-size: 34px;
+  }
+
+  .menu-title p {
+    display: none;
+  }
+
+  .menu-item {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .menu-item .desc {
+    display: none;
+  }
+
+  .totem-banner {
+    padding: 12px 12px 10px;
+  }
+
+  .totem-banner .avatar-img {
+    max-width: 84px;
+    min-width: 64px;
   }
 
   .dungeon-name {
