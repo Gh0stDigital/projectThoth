@@ -1,14 +1,16 @@
 import type { Totem } from '@/domain/totem'
 import { totemBalance } from '@/config/balance'
 import { makeId } from './idGen'
-import { pickFlavor } from '@/config/assets'
 
 export function createTotem(name: string): Totem {
   const level = 1
   return {
     id: makeId('totem'),
     name: name.trim() || 'Totem',
-    avatarKey: pickFlavor('totems', name || makeId('seed')).split('/').pop()!.replace('.png', ''),
+    // Every Totem starts on the 'default' avatar for now — only that slot
+    // is guaranteed to have real art. Flip this back to a pickFlavor(...)
+    // roll once every totems/* key has its own artwork.
+    avatarKey: 'default',
     level,
     experience: 0,
     currentHp: totemBalance.maxHp(level),

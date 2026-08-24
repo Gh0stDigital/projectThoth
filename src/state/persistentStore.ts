@@ -60,7 +60,15 @@ function loadInitial(): PersistedData {
   return {
     spells: saved.spells ?? defaults.spells,
     spellSets: saved.spellSets ?? defaults.spellSets,
-    totems: saved.totems && saved.totems.length > 0 ? saved.totems : defaults.totems,
+    // For now every Totem displays the 'default' avatar (see
+    // totemManager.createTotem) — override old saves too, since a Totem's
+    // avatarKey was previously locked in at creation and only 'default'
+    // is guaranteed to have real art. Drop this override once every
+    // totems/* slot has its own artwork and avatarKey should vary again.
+    totems: (saved.totems && saved.totems.length > 0 ? saved.totems : defaults.totems).map((t) => ({
+      ...t,
+      avatarKey: 'default',
+    })),
     activeTotemId: saved.activeTotemId ?? defaults.activeTotemId,
     settings: { ...defaults.settings, ...saved.settings },
     lastDungeonSelection: { ...defaults.lastDungeonSelection, ...saved.lastDungeonSelection },
