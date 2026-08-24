@@ -1411,3 +1411,73 @@ select:focus {
 .import-row-message.duplicate {
   color: var(--accent-gold-dim);
 }
+
+/* ---- Dungeon config screen ---- */
+
+.dungeon-name {
+  text-align: center;
+  font-size: 22px;
+  background: linear-gradient(180deg, var(--text-primary), var(--text-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tier-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tier-card {
+  appearance: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+}
+
+.tier-card:active {
+  transform: scale(0.99);
+}
+
+.tier-card[data-selected='true'] {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 16px -6px var(--glow-gold);
+}
+
+.tier-card-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.tier-card-meta {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+
+.dungeon-info-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dungeon-info-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+}

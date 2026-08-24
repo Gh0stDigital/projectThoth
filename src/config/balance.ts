@@ -91,7 +91,12 @@ export type DungeonTierId = 'tier10' | 'tier25' | 'tier50'
 
 export interface DungeonTierDef {
   id: DungeonTierId
+  /** Flavorful dungeon name shown as the headline on the config screen. */
+  name: string
+  /** Short functional label (still used in compact spots like stat tiles). */
   label: string
+  /** One-line flavor/difficulty blurb shown in the dungeon info display. */
+  description: string
   wordLimit: number
   /** Roughly how many non-boss events occur before the boss room can spawn. */
   minEventsBeforeBossEligible: number
@@ -102,21 +107,27 @@ export interface DungeonTierDef {
 export const dungeonTiers: DungeonTierDef[] = [
   {
     id: 'tier10',
+    name: 'Whisperwood Hollow',
     label: '10-Word Dungeon',
+    description: 'A gentle first descent — ideal for building core vocabulary.',
     wordLimit: 10,
     minEventsBeforeBossEligible: 6,
     enemyDamageMultiplier: 1,
   },
   {
     id: 'tier25',
+    name: 'Sunken Catacombs',
     label: '25-Word Dungeon',
+    description: 'A longer trial mixing familiar and newer words under rising pressure.',
     wordLimit: 25,
     minEventsBeforeBossEligible: 12,
     enemyDamageMultiplier: 1.25,
   },
   {
     id: 'tier50',
+    name: 'The Abyssal Vault',
     label: '50-Word Dungeon',
+    description: 'The deep end — a full vocabulary gauntlet for the well-prepared.',
     wordLimit: 50,
     minEventsBeforeBossEligible: 20,
     enemyDamageMultiplier: 1.6,
