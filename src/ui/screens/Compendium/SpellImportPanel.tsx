@@ -1,6 +1,19 @@
 import { useMemo, useRef, useState } from 'react'
 import { usePersistentStore } from '@/state/persistentStore'
-import { parseImportText, importRowsToInputs } from '@/systems/spellImport'
+import { parseImportText, importRowsToInputs, IMPORT_TEMPLATE_CSV } from '@/systems/spellImport'
+
+/** Saves text as a local file via a throwaway object URL — no network involved. */
+function downloadTextFile(filename: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: mime })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
 
 const PLACEHOLDER = `안녕하세요, hello
 감사합니다, thank you
@@ -86,6 +99,17 @@ export function SpellImportPanel({ onDone, onCancel }: SpellImportPanelProps) {
         </p>
       </div>
 
+      <div className="btn-row">
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => downloadTextFile('thoth-spell-import-template.csv', IMPORT_TEMPLATE_CSV, 'text/csv')}
+        >
+          ⬇️ Download Template
+        </button>
+        <button className="btn btn-ghost btn-sm" onClick={() => setText(IMPORT_TEMPLATE_CSV)}>
+          👁️ Preview Template
+        </button>
+      </div>
       <div className="btn-row">
         <button className="btn btn-ghost btn-sm" onClick={() => fileInputRef.current?.click()}>
           📄 Load .txt / .csv file

@@ -123,3 +123,20 @@ export function parseImportText(text: string, existingSpells: Spell[]): ImportRe
 export function importRowsToInputs(rows: ImportRow[]): NewSpellInput[] {
   return rows.map((r) => ({ korean: r.korean, english: r.english, notes: r.notes || undefined }))
 }
+
+/**
+ * A downloadable example file in the exact format parseImportText()
+ * expects — header row plus a few filled-in sample rows the player can
+ * study, delete, and replace with their own list. CSV so it opens
+ * straight into Excel/Sheets/Numbers, but it's just plain text: renaming
+ * it to .txt and pasting its contents works identically.
+ */
+export const IMPORT_TEMPLATE_CSV = [
+  'korean,english,notes',
+  '안녕하세요,hello,common greeting',
+  '감사합니다,thank you,polite form',
+  '사랑,love,noun',
+  '물,water,',
+  '학교,school,place of study',
+].join('\n')
+
