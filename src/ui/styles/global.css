@@ -1493,6 +1493,170 @@ select:focus {
   font-style: italic;
 }
 
+/* ---- Spell Word batch import ---- */
+
+.import-summary {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.import-count {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+}
+
+.import-count.ok {
+  color: var(--accent-green);
+  border-color: var(--accent-green);
+}
+
+.import-count.duplicate {
+  color: var(--accent-gold);
+  border-color: var(--accent-gold-dim);
+}
+
+.import-count.error {
+  color: var(--accent-red);
+  border-color: var(--accent-red);
+}
+
+.import-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 8px;
+}
+
+.import-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--border-soft);
+  font-size: 13px;
+}
+
+.import-row.ok {
+  border-left-color: var(--accent-green);
+}
+
+.import-row.duplicate {
+  border-left-color: var(--accent-gold-dim);
+}
+
+.import-row.error {
+  border-left-color: var(--accent-red);
+}
+
+.import-row-line {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  flex-shrink: 0;
+  width: 22px;
+  text-align: right;
+}
+
+.import-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.import-row-message {
+  font-size: 11px;
+}
+
+.import-row-message.error {
+  color: var(--accent-red);
+}
+
+.import-row-message.duplicate {
+  color: var(--accent-gold-dim);
+}
+
+/* ---- Dungeon config screen ---- */
+
+.dungeon-name {
+  text-align: center;
+  font-size: 22px;
+  background: linear-gradient(180deg, var(--text-primary), var(--text-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tier-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tier-card {
+  appearance: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+}
+
+.tier-card:active {
+  transform: scale(0.99);
+}
+
+.tier-card[data-selected='true'] {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 16px -6px var(--glow-gold);
+}
+
+.tier-card-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.tier-card-meta {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+
+.dungeon-info-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dungeon-info-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
 /* ---- Challenge modal (vocabulary answer popup) ---- */
 
 .challenge-modal-backdrop {
@@ -1939,4 +2103,37 @@ select:focus {
   .stat-tile .value {
     font-size: 15px;
   }
+}
+
+/* ---- Answering a challenge inline ---- */
+
+/* The answer box lives in the normal dungeon layout (not a popup), so when
+   the on-screen keyboard opens it must not end up underneath it. While a
+   challenge is up, the screen sheds its most expendable vertical chrome —
+   the map track, the progress meter, and most of the scene image — which
+   lifts the prompt and input into the top half of the screen. */
+.screen[data-challenge='true'] .dungeon-track,
+.screen[data-challenge='true'] .progress-meter,
+.screen[data-challenge='true'] .enemy-hp-row,
+.screen[data-challenge='true'] .plateau-banner {
+  display: none;
+}
+
+.screen[data-challenge='true'] .scene-window.dungeon,
+.screen[data-challenge='true'] .scene-window.battle {
+  height: 14dvh;
+  min-height: 64px;
+}
+
+.screen[data-challenge='true'] .totem-panel {
+  padding: 6px 10px;
+}
+
+.screen[data-challenge='true'] .totem-panel .avatar-img {
+  max-width: 58px;
+  min-width: 44px;
+}
+
+.challenge-prompt {
+  flex-shrink: 0;
 }

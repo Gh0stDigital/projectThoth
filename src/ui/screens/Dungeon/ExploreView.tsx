@@ -7,7 +7,6 @@ import { TypewriterText } from '@/ui/components/TypewriterText'
 import { ProgressMeter } from '@/ui/components/ProgressMeter'
 import { DungeonProgressTrack } from '@/ui/components/DungeonProgressTrack'
 import { TotemPanel } from '@/ui/components/TotemPanel'
-import { ChallengeModal } from '@/ui/components/ChallengeModal'
 import { MoveRollModal } from '@/ui/components/MoveRollModal'
 import { ChallengeView } from './ChallengeView'
 import { WordInfoPanel } from './WordInfoPanel'
@@ -130,7 +129,7 @@ export function ExploreView() {
     run.bossUnlocked && run.phase === 'event' && !!event && !event.actions.includes('enter_boss')
 
   return (
-    <div className="screen">
+    <div className="screen" data-challenge={run.phase === 'challenge' ? 'true' : undefined}>
       <div className="row">
         <button className="btn btn-ghost btn-sm" onClick={exitToMenu}>
           ✕ Exit Dungeon
@@ -174,9 +173,7 @@ export function ExploreView() {
       )}
 
       {run.phase === 'challenge' && event?.challenge && (
-        <ChallengeModal>
-          <ChallengeView challenge={event.challenge} onSubmit={submitEventChallengeAnswer} />
-        </ChallengeModal>
+        <ChallengeView challenge={event.challenge} onSubmit={submitEventChallengeAnswer} />
       )}
 
       {run.phase === 'resolution' && (
