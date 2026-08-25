@@ -951,13 +951,79 @@ select:focus {
   letter-spacing: 0.05em;
 }
 
-.answer-row {
+/* ---- Answer tiles ---- */
+
+/* The slots the player fills in, above the tray. */
+.tile-answer {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-top: 12px;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
 }
 
-.answer-row input {
-  flex: 1;
+.answer-slot {
+  width: 30px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-strong);
+  opacity: 0.5;
+}
+
+.tile-tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.answer-tile {
+  appearance: none;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 34px;
+  min-height: 40px;
+  padding: 8px 10px;
+  cursor: pointer;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: transform 0.08s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.answer-tile:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.answer-tile:disabled {
+  opacity: 0.22;
+  cursor: default;
+}
+
+/* Tiles already placed in the answer row read as "committed". */
+.answer-tile.placed {
+  min-height: 32px;
+  padding: 5px 9px;
+  background: linear-gradient(180deg, rgba(242, 193, 78, 0.2), var(--bg-card));
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.tile-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .feedback-banner {

@@ -100,6 +100,7 @@ export function ExploreView() {
   const useItem = useDungeonStore((s) => s.useItem)
   const exitToMenu = useDungeonStore((s) => s.exitToMenu)
 
+  const allSpells = usePersistentStore((s) => s.spells)
   const totems = usePersistentStore((s) => s.totems)
   const spellSets = usePersistentStore((s) => s.spellSets)
   const inventory = usePersistentStore((s) => s.inventory)
@@ -115,6 +116,15 @@ export function ExploreView() {
     setRolling(true)
     moveToNextEvent()
   }, [moveToNextEvent])
+
+  // Answer + decoy tiles for the active challenge, both drawn from this
+  // run's own word pool so decoys are words the player is actually studying.
+  const challengeSpell = run.currentEvent?.challenge
+    ? allSpells.find((sp) => sp.id === run.currentEvent!.challenge!.spellId)
+    : undefined
+  const answersInRun = run.config.dungeonWordIds
+    .map((id) => allSpells.find((sp) => sp.id === id))
+    .filter((sp): sp is (typeof allSpells)[number] => !!sp)
 
   const event = run.currentEvent
   // Treat the screen as "still in the room" while the die is rolling: the
@@ -172,8 +182,15 @@ export function ExploreView() {
         <EventBody key={event.id} event={event} charsPerSecond={charsPerSecond} onChooseAction={chooseEventAction} />
       )}
 
-      {run.phase === 'challenge' && event?.challenge && (
-        <ChallengeView challenge={event.challenge} onSubmit={submitEventChallengeAnswer} />
+      {run.phase === 'challenge' && event?.challenge && challengeSpell && (
+        <ChallengeView
+          challenge={event.challenge}
+          answer={event.challenge.direction === 'eng_to_kor' ? challengeSpell.korean : challengeSpell.english}
+          decoyPool={answersInRun.map((sp) =>
+            event.challenge!.direction === 'eng_to_kor' ? sp.korean : sp.english,
+          )}
+          onSubmit={submitEventChallengeAnswer}
+        />
       )}
 
       {run.phase === 'resolution' && (

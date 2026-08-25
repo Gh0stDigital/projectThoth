@@ -1,16 +1,42 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Challenge } from '@/domain/challenge'
+import { buildTileChallenge, assembledText, type AnswerTile } from '@/systems/tileAssembly'
 
 interface ChallengeViewProps {
   challenge: Challenge
+  /** The correct answer, cut into tiles for the player to reassemble. */
+  answer: string
+  /** Other answers in this run — cut the same way to supply decoy tiles. */
+  decoyPool: string[]
   onSubmit: (text: string) => void
   submitLabel?: string
 }
 
-/** English↔Korean vocabulary prompt + answer input, shared by dungeon events. */
-export function ChallengeView({ challenge, onSubmit, submitLabel = 'Answer' }: ChallengeViewProps) {
-  const [text, setText] = useState('')
+/**
+ * English↔Korean vocabulary prompt answered by tapping tiles into order,
+ * rather than typing. Removes typo and synonym false-negatives (the target
+ * is the player's own saved answer, spelled out) and means no keyboard
+ * ever opens mid-dungeon.
+ */
+export function ChallengeView({ challenge, answer, decoyPool, onSubmit, submitLabel = 'Answer' }: ChallengeViewProps) {
   const asksForKorean = challenge.direction === 'eng_to_kor'
+  const kind = asksForKorean ? 'korean' : 'english'
+
+  // Rebuilt only when the challenge changes — not on every timer tick,
+  // which would reshuffle the tiles under the player's finger.
+  const board = useMemo(
+    () => buildTileChallenge(answer, kind, decoyPool),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [challenge.id],
+  )
+
+  const [picked, setPicked] = useState<AnswerTile[]>([])
+  const pickedIds = new Set(picked.map((t) => t.id))
+  const assembled = assembledText(picked, board.joiner)
+
+  function submit() {
+    if (picked.length > 0) onSubmit(assembled)
+  }
 
   return (
     <div className="panel challenge-prompt">
@@ -18,26 +44,44 @@ export function ChallengeView({ challenge, onSubmit, submitLabel = 'Answer' }: C
       <div className="prompt-word" lang={asksForKorean ? 'en' : 'ko'}>
         {challenge.prompt}
       </div>
-      <form
-        className="answer-row"
-        style={{ marginTop: 14 }}
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (text.trim()) onSubmit(text)
-        }}
-      >
-        <input
-          type="text"
-          autoFocus
-          lang={asksForKorean ? 'ko' : 'en'}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={asksForKorean ? '한국어로 입력...' : 'Type in English...'}
-        />
-        <button className="btn btn-primary" type="submit" disabled={!text.trim()}>
+
+      {/* What the player has built so far — tap a piece to take it back. */}
+      <div className="tile-answer" lang={asksForKorean ? 'ko' : 'en'}>
+        {picked.map((tile) => (
+          <button
+            key={tile.id}
+            className="answer-tile placed"
+            onClick={() => setPicked((p) => p.filter((t) => t.id !== tile.id))}
+          >
+            {tile.text}
+          </button>
+        ))}
+        {Array.from({ length: Math.max(0, board.answerLength - picked.length) }, (_, i) => (
+          <span key={`slot-${i}`} className="answer-slot" />
+        ))}
+      </div>
+
+      <div className="tile-tray" lang={asksForKorean ? 'ko' : 'en'}>
+        {board.tiles.map((tile) => (
+          <button
+            key={tile.id}
+            className="answer-tile"
+            disabled={pickedIds.has(tile.id)}
+            onClick={() => setPicked((p) => [...p, tile])}
+          >
+            {tile.text}
+          </button>
+        ))}
+      </div>
+
+      <div className="tile-actions">
+        <button className="btn btn-ghost btn-sm" disabled={picked.length === 0} onClick={() => setPicked([])}>
+          Clear
+        </button>
+        <button className="btn btn-primary btn-sm" disabled={picked.length === 0} onClick={submit}>
           {submitLabel}
         </button>
-      </form>
+      </div>
     </div>
   )
 }

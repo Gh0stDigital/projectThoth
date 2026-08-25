@@ -42,6 +42,18 @@ export function BattleView() {
     return () => window.clearInterval(id)
   }, [battle.phase, battle.timer?.running, wordInfoOpen, documentVisible, tickBattleTimer])
 
+  // Answer + decoy tiles for the active challenge. Decoys come from the
+  // run's word pool so they're words the player is actually studying.
+  const challengeSpell = battle.activeChallenge
+    ? spells.find((sp) => sp.id === battle.activeChallenge!.spellId)
+    : undefined
+  const asksForKorean = battle.activeChallenge?.direction === 'eng_to_kor'
+  const answerFor = (sp: (typeof spells)[number]) => (asksForKorean ? sp.korean : sp.english)
+  const decoyPool = run.config.dungeonWordIds
+    .map((id) => spells.find((sp) => sp.id === id))
+    .filter((sp): sp is (typeof spells)[number] => !!sp)
+    .map(answerFor)
+
   const handIds = visibleHand(battle)
   const handSpells = handIds.map((id) => spells.find((s) => s.id === id)).filter((s): s is (typeof spells)[number] => !!s)
   const plateauRemaining = battle.plateau ? battle.plateau.filter((r) => !r.cleared).length : 0
@@ -106,8 +118,14 @@ export function BattleView() {
         </>
       )}
 
-      {battle.phase === 'player_challenge' && battle.activeChallenge && (
-        <ChallengeView challenge={battle.activeChallenge} onSubmit={submitAttackAnswer} submitLabel="Attack!" />
+      {battle.phase === 'player_challenge' && battle.activeChallenge && challengeSpell && (
+        <ChallengeView
+          challenge={battle.activeChallenge}
+          answer={answerFor(challengeSpell)}
+          decoyPool={decoyPool}
+          onSubmit={submitAttackAnswer}
+          submitLabel="Attack!"
+        />
       )}
 
       {battle.phase === 'player_resolve' && (
@@ -127,7 +145,15 @@ export function BattleView() {
               <Bar value={battle.timer.remainingSeconds} max={battle.timer.totalSeconds} kind="timer" thin />
             </div>
           </div>
-          <ChallengeView challenge={battle.activeChallenge} onSubmit={submitDefenseAnswer} submitLabel="Defend!" />
+          {challengeSpell && (
+            <ChallengeView
+              challenge={battle.activeChallenge}
+              answer={answerFor(challengeSpell)}
+              decoyPool={decoyPool}
+              onSubmit={submitDefenseAnswer}
+              submitLabel="Defend!"
+            />
+          )}
         </>
       )}
 

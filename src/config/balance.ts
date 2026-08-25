@@ -184,6 +184,21 @@ export const eventWeights: Record<DungeonEventType, number> = {
 export const maxRepeatEventStreak = 2
 
 // ---------------------------------------------------------------------------
+// Answer tiles
+// ---------------------------------------------------------------------------
+
+export const tileBalance = {
+  /**
+   * Decoy tiles are scaled to the answer's length, then clamped — a
+   * two-syllable word doesn't need eight decoys, and a long one shouldn't
+   * flood the grid.
+   */
+  decoyRatio: 1,
+  minDecoys: 3,
+  maxDecoys: 8,
+}
+
+// ---------------------------------------------------------------------------
 // Misc
 // ---------------------------------------------------------------------------
 
