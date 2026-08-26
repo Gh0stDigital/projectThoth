@@ -198,8 +198,8 @@ p {
   background: var(--bg-card);
   color: var(--text-primary);
   border-radius: var(--radius-md);
-  padding: 12px 16px;
-  font-size: 15px;
+  padding: 14px 18px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -208,7 +208,7 @@ p {
   gap: 8px;
   transition: transform 0.08s ease, opacity 0.15s ease, background 0.15s ease, box-shadow 0.15s ease,
     border-color 0.15s ease;
-  min-height: 46px;
+  min-height: 54px;
 }
 
 .btn:active {
@@ -261,9 +261,9 @@ p {
 }
 
 .btn-sm {
-  padding: 8px 12px;
-  font-size: 13px;
-  min-height: 36px;
+  padding: 11px 16px;
+  font-size: 14.5px;
+  min-height: 46px;
 }
 
 .btn-row {
@@ -345,7 +345,8 @@ p {
   background: var(--bg-panel-raised);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  padding: 12px;
+  min-height: 48px;
   color: var(--text-primary);
   font-size: 16px;
   outline: none;
@@ -356,7 +357,8 @@ p {
   background: var(--bg-panel-raised);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  padding: 12px;
+  min-height: 48px;
   color: var(--text-primary);
   font-size: 16px;
   outline: none;
@@ -529,12 +531,12 @@ select:focus {
   background: linear-gradient(160deg, var(--bg-card), var(--bg-panel-raised));
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-md);
-  padding: 10px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-width: 108px;
-  max-width: 132px;
+  gap: 7px;
+  min-width: 126px;
+  max-width: 150px;
   cursor: pointer;
   position: relative;
 }
@@ -923,9 +925,15 @@ select:focus {
 .hand-scroll {
   display: flex;
   gap: 10px;
-  overflow-x: auto;
   padding: 4px 2px 10px;
-  -webkit-overflow-scrolling: touch;
+}
+
+/* Cards divide the row evenly so the whole hand is reachable without a
+   sideways swipe; min-width:0 lets them shrink below their content width. */
+.hand-scroll .spell-card {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
 }
 
 .timer-row {
@@ -965,18 +973,18 @@ select:focus {
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 6px;
-  min-height: 44px;
+  gap: 7px;
+  min-height: 58px;
   margin-top: 12px;
-  padding: 6px;
+  padding: 8px;
   border-radius: var(--radius-md);
   background: var(--bg-deep);
   border: 1px solid var(--border-soft);
 }
 
 .answer-slot {
-  width: 30px;
-  height: 32px;
+  width: 40px;
+  height: 46px;
   border-radius: var(--radius-sm);
   border: 1px dashed var(--border-strong);
   opacity: 0.5;
@@ -986,19 +994,19 @@ select:focus {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px;
-  margin-top: 10px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .answer-tile {
   appearance: none;
   font-family: inherit;
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1;
-  min-width: 34px;
-  min-height: 40px;
-  padding: 8px 10px;
+  min-width: 48px;
+  min-height: 56px;
+  padding: 10px 13px;
   cursor: pointer;
   color: var(--text-primary);
   background: var(--bg-card);
@@ -1018,8 +1026,9 @@ select:focus {
 
 /* Tiles already placed in the answer row read as "committed". */
 .answer-tile.placed {
-  min-height: 32px;
-  padding: 5px 9px;
+  min-height: 46px;
+  min-width: 42px;
+  padding: 8px 11px;
   background: linear-gradient(180deg, rgba(242, 193, 78, 0.2), var(--bg-card));
   border-color: var(--accent-gold);
   color: var(--accent-gold);
@@ -1289,9 +1298,9 @@ select:focus {
   border: 1px solid var(--border-strong);
   border-left: 3px solid var(--accent-cyan-dim);
   border-radius: var(--radius-md);
-  padding: 12px;
+  padding: 14px;
   color: var(--text-primary);
-  min-height: 84px;
+  min-height: 98px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
 }
 
@@ -1968,8 +1977,8 @@ select:focus {
 }
 
 .room-action {
-  min-height: 68px;
-  padding: 9px 10px;
+  min-height: 84px;
+  padding: 11px 12px;
 }
 
 .room-action .icon {
@@ -2097,8 +2106,24 @@ select:focus {
   }
 
   .room-action {
-    min-height: 58px;
-    padding: 7px 9px;
+    min-height: 76px;
+    padding: 10px 11px;
+  }
+
+  .answer-tile {
+    min-width: 44px;
+    min-height: 50px;
+    font-size: 18px;
+    padding: 8px 11px;
+  }
+
+  .answer-tile.placed {
+    min-height: 42px;
+  }
+
+  .answer-slot {
+    width: 36px;
+    height: 42px;
   }
 
   .room-action .sub {
@@ -2130,6 +2155,22 @@ select:focus {
 @media (max-height: 700px) {
   .screen-tight {
     gap: 7px;
+  }
+
+  .screen {
+    gap: 7px;
+  }
+
+  .room-flavor p {
+    display: none;
+  }
+
+  .room-actions {
+    gap: 8px;
+  }
+
+  .room-action {
+    min-height: 66px;
   }
 
   /* Main Menu is a fixed pane now, so it has to fit the shortest phones
