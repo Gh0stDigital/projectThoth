@@ -161,6 +161,14 @@ export function ExploreView() {
         {rolling && <MoveRollModal resultTitle={event?.title ?? null} onDone={() => setRolling(false)} />}
       </div>
 
+      {run.phase === 'event' && event && !rolling && (
+        <EventBody key={event.id} event={event} charsPerSecond={charsPerSecond} onChooseAction={chooseEventAction} />
+      )}
+
+      {run.phase === 'resolution' && (
+        <ResolutionBody key={event?.id ?? 'resolution'} run={run} charsPerSecond={charsPerSecond} onContinue={continueExploring} />
+      )}
+
       <TotemPanel totem={totem} compact />
 
       <ProgressMeter challenged={challenged} total={total} bossUnlocked={run.bossUnlocked} onOpenWordInfo={toggleWordInfo} />
@@ -178,10 +186,6 @@ export function ExploreView() {
         />
       )}
 
-      {run.phase === 'event' && event && !rolling && (
-        <EventBody key={event.id} event={event} charsPerSecond={charsPerSecond} onChooseAction={chooseEventAction} />
-      )}
-
       {run.phase === 'challenge' && event?.challenge && challengeSpell && (
         <ChallengeView
           challenge={event.challenge}
@@ -191,10 +195,6 @@ export function ExploreView() {
           )}
           onSubmit={submitEventChallengeAnswer}
         />
-      )}
-
-      {run.phase === 'resolution' && (
-        <ResolutionBody key={event?.id ?? 'resolution'} run={run} charsPerSecond={charsPerSecond} onContinue={continueExploring} />
       )}
 
       <div style={{ flex: 1 }} />

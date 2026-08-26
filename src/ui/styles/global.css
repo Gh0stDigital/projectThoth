@@ -336,6 +336,12 @@ p {
 }
 
 .field select {
+  /* A <select> sizes itself to its widest <option>, so a long Spell Set
+     name would otherwise force its container wider than the screen.
+     width:100% + min-width:0 pins it to the column instead. */
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   background: var(--bg-panel-raised);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
@@ -1786,11 +1792,19 @@ select:focus {
   font-size: 14px;
 }
 
-/* Two selects side by side instead of stacked full-width fields. */
+/* Two selects side by side instead of stacked full-width fields.
+   min-width:0 on the grid children is required: grid items default to
+   min-width:auto, which refuses to shrink below their content's intrinsic
+   width and pushes the second column off-screen. */
 .config-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  min-width: 0;
+}
+
+.config-row > .field {
+  min-width: 0;
 }
 
 /* Tier cards as a compact horizontal row instead of a vertical stack. */

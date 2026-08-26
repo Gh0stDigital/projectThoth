@@ -73,8 +73,10 @@ export function visibleHand(state: BattleState, count: number = battleBalance.vi
 }
 
 export function beginPlayerChallenge(state: BattleState, spell: Spell): BattleState {
-  // Attacks always present the saved English meaning and ask for the Korean Spell Word.
-  const challenge = generateChallenge(spell, 'attack', 'eng_to_kor')
+  // Attacking: the player picked a Korean Spell card, so the card's Korean
+  // word is the prompt and they supply the English meaning. The English is
+  // never shown on the card or the prompt — that would give the answer away.
+  const challenge = generateChallenge(spell, 'attack', 'kor_to_eng')
   return { ...state, phase: 'player_challenge', activeChallenge: challenge, lastResult: null }
 }
 
@@ -148,7 +150,9 @@ export function beginEnemyChallenge(
     return { ...state, phase: 'enemy_intro', activeChallenge: null, timer: null }
   }
   const spell = pool[Math.floor(rng() * pool.length)]
-  const challenge = generateChallenge(spell, 'defense', 'kor_to_eng')
+  // Defending: the enemy throws an English meaning at the player, who must
+  // produce the Korean word before the timer runs out.
+  const challenge = generateChallenge(spell, 'defense', 'eng_to_kor')
   return {
     ...state,
     phase: 'enemy_challenge',
