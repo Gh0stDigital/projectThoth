@@ -9,7 +9,8 @@ const TICK_MS = 80
 interface MoveRollModalProps {
   /** Shown once the die settles — the event the player just walked into. */
   resultTitle: string | null
-  onDone: () => void
+  /** Fired once the die lands, so the parent can offer Continue. */
+  onSettled: () => void
 }
 
 /**
@@ -17,9 +18,11 @@ interface MoveRollModalProps {
  * the scene window (as an absolutely-positioned layer over the location
  * art) rather than as a full-screen sheet, so the roll reads as something
  * happening in the room itself. The die tumbles for a beat, settles, then
- * reveals what lies ahead.
+ * reveals what lies ahead. The Continue button is not part of this overlay:
+ * it renders in the screen's normal action slot so every tappable control
+ * stays in the same place.
  */
-export function MoveRollModal({ resultTitle, onDone }: MoveRollModalProps) {
+export function MoveRollModal({ resultTitle, onSettled }: MoveRollModalProps) {
   const [face, setFace] = useState(0)
   const [settled, setSettled] = useState(false)
 
@@ -35,8 +38,10 @@ export function MoveRollModal({ resultTitle, onDone }: MoveRollModalProps) {
     const id = window.setTimeout(() => {
       setFace(Math.floor(Math.random() * DIE_FACES.length))
       setSettled(true)
+      onSettled()
     }, ROLL_MS)
     return () => window.clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
@@ -46,9 +51,6 @@ export function MoveRollModal({ resultTitle, onDone }: MoveRollModalProps) {
         {DIE_FACES[face]}
       </div>
       {settled && resultTitle && <div className="move-roll-result">{resultTitle}</div>}
-      <button className="btn btn-primary btn-sm move-roll-btn" disabled={!settled} onClick={onDone}>
-        {settled ? 'Continue →' : '…'}
-      </button>
     </div>
   )
 }

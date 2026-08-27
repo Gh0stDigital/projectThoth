@@ -2228,31 +2228,24 @@ select:focus {
 
 /* ---- Answering a challenge inline ---- */
 
-/* The answer box lives in the normal dungeon layout (not a popup), so when
-   the on-screen keyboard opens it must not end up underneath it. While a
-   challenge is up, the screen sheds its most expendable vertical chrome —
-   the map track, the progress meter, and most of the scene image — which
-   lifts the prompt and input into the top half of the screen. */
+/* While a challenge is up, the surrounding windows are *hidden*, never
+   resized. Squeezing the scene image and totem panel to make room made the
+   whole screen appear to shift and rescale mid-answer; hiding them instead
+   means everything that stays on screen keeps its normal size, and
+   everything else returns unchanged when the answer is submitted.
+   What remains: the exit row, the Totem panel (its HP matters while you
+   answer), the battle's enemy HP + timer, and the answer board itself. */
 .screen[data-challenge='true'] .dungeon-track,
+.screen[data-challenge='true'] .scene-window,
+.screen[data-challenge='true'] .typewriter-box,
 .screen[data-challenge='true'] .progress-meter,
-.screen[data-challenge='true'] .enemy-hp-row,
 .screen[data-challenge='true'] .plateau-banner {
   display: none;
 }
 
-.screen[data-challenge='true'] .scene-window.dungeon,
-.screen[data-challenge='true'] .scene-window.battle {
-  height: 14dvh;
-  min-height: 64px;
-}
-
-.screen[data-challenge='true'] .totem-panel {
-  padding: 6px 10px;
-}
-
-.screen[data-challenge='true'] .totem-panel .avatar-img {
-  max-width: 58px;
-  min-width: 44px;
+/* The answer board takes the space the hidden windows leave behind. */
+.screen[data-challenge='true'] .challenge-prompt {
+  margin-top: 4px;
 }
 
 .challenge-prompt {

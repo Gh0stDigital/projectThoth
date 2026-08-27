@@ -95,7 +95,9 @@ export function ExploreView() {
   // generated immediately so the roll can reveal what was found, but the
   // player stays on the modal until they dismiss it.
   const [rolling, setRolling] = useState(false)
+  const [rollSettled, setRollSettled] = useState(false)
   const handleMove = useCallback(() => {
+    setRollSettled(false)
     setRolling(true)
     moveToNextEvent()
   }, [moveToNextEvent])
@@ -145,7 +147,7 @@ export function ExploreView() {
         <span className="scene-tag">
           {inRoom ? (run.roomKind === 'entrance' ? 'Entrance' : 'Intermission') : event!.title}
         </span>
-        {rolling && <MoveRollModal resultTitle={event?.title ?? null} onDone={() => setRolling(false)} />}
+        {rolling && <MoveRollModal resultTitle={event?.title ?? null} onSettled={() => setRollSettled(true)} />}
       </div>
 
       {run.phase === 'event' && event && !rolling && (
@@ -182,6 +184,16 @@ export function ExploreView() {
           onStatus={() => openPanel('status')}
           onEnterBoss={enterBossFromRoom}
         />
+      )}
+
+      {rolling && (
+        <button
+          className="btn btn-primary btn-block"
+          disabled={!rollSettled}
+          onClick={() => setRolling(false)}
+        >
+          {rollSettled ? 'Continue →' : 'Rolling…'}
+        </button>
       )}
 
       {run.phase === 'event' && event && !rolling && dialogueRevealed && (
