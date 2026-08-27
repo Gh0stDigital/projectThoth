@@ -32,57 +32,40 @@ function actionLabel(action: DungeonEventAction, event: DungeonEvent): string {
   }
 }
 
-/** Owns its own "has the text finished typing" state, reset by React when `key` changes. */
-function EventBody({
+/**
+ * The dialogue box only — its buttons render separately, down in the hub's
+ * action slot, so everything tappable sits together at the bottom.
+ */
+function EventDialogue({
   event,
   charsPerSecond,
-  onChooseAction,
+  onRevealed,
 }: {
   event: DungeonEvent
   charsPerSecond: number
-  onChooseAction: (action: DungeonEventAction) => void
+  onRevealed: () => void
 }) {
-  const [revealed, setRevealed] = useState(false)
-  return (
-    <>
-      <TypewriterText lines={event.bodyText} charsPerSecond={charsPerSecond} onRevealed={() => setRevealed(true)} />
-      {revealed && (
-        <div className="action-bar">
-          {event.actions.map((action) => (
-            <button key={action} className="btn btn-primary" onClick={() => onChooseAction(action)}>
-              {actionLabel(action, event)}
-            </button>
-          ))}
-        </div>
-      )}
-    </>
-  )
+  return <TypewriterText lines={event.bodyText} charsPerSecond={charsPerSecond} onRevealed={onRevealed} />
 }
 
-function ResolutionBody({
+function ResolutionDialogue({
   run,
   charsPerSecond,
   onContinue,
+  onRevealed,
 }: {
   run: DungeonRunState
   charsPerSecond: number
   onContinue: () => void
+  onRevealed: () => void
 }) {
-  const [revealed, setRevealed] = useState(false)
   return (
-    <>
-      <TypewriterText
-        lines={run.lastOutcomeText}
-        charsPerSecond={charsPerSecond}
-        onTapComplete={onContinue}
-        onRevealed={() => setRevealed(true)}
-      />
-      {revealed && (
-        <button className="btn btn-primary btn-block" onClick={onContinue}>
-          Continue →
-        </button>
-      )}
-    </>
+    <TypewriterText
+      lines={run.lastOutcomeText}
+      charsPerSecond={charsPerSecond}
+      onTapComplete={onContinue}
+      onRevealed={onRevealed}
+    />
   )
 }
 
@@ -127,6 +110,10 @@ export function ExploreView() {
     .filter((sp): sp is (typeof allSpells)[number] => !!sp)
 
   const event = run.currentEvent
+  const dialogueKey = `${run.phase}:${event?.id ?? 'none'}`
+  const [revealedKey, setRevealedKey] = useState<string | null>(null)
+  const dialogueRevealed = revealedKey === dialogueKey
+
   // Treat the screen as "still in the room" while the die is rolling: the
   // next event is already generated (so the roll can name it), but
   // revealing it behind the modal would spoil the roll.
@@ -162,11 +149,22 @@ export function ExploreView() {
       </div>
 
       {run.phase === 'event' && event && !rolling && (
-        <EventBody key={event.id} event={event} charsPerSecond={charsPerSecond} onChooseAction={chooseEventAction} />
+        <EventDialogue
+          key={dialogueKey}
+          event={event}
+          charsPerSecond={charsPerSecond}
+          onRevealed={() => setRevealedKey(dialogueKey)}
+        />
       )}
 
       {run.phase === 'resolution' && (
-        <ResolutionBody key={event?.id ?? 'resolution'} run={run} charsPerSecond={charsPerSecond} onContinue={continueExploring} />
+        <ResolutionDialogue
+          key={dialogueKey}
+          run={run}
+          charsPerSecond={charsPerSecond}
+          onContinue={continueExploring}
+          onRevealed={() => setRevealedKey(dialogueKey)}
+        />
       )}
 
       <TotemPanel totem={totem} compact />
@@ -184,6 +182,22 @@ export function ExploreView() {
           onStatus={() => openPanel('status')}
           onEnterBoss={enterBossFromRoom}
         />
+      )}
+
+      {run.phase === 'event' && event && !rolling && dialogueRevealed && (
+        <div className="action-bar">
+          {event.actions.map((action) => (
+            <button key={action} className="btn btn-primary" onClick={() => chooseEventAction(action)}>
+              {actionLabel(action, event)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {run.phase === 'resolution' && dialogueRevealed && (
+        <button className="btn btn-primary btn-block" onClick={continueExploring}>
+          Continue →
+        </button>
       )}
 
       {run.phase === 'challenge' && event?.challenge && challengeSpell && (
