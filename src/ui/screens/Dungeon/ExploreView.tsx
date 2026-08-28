@@ -112,7 +112,6 @@ export function ExploreView() {
   const total = run.config.dungeonWordIds.length
 
   const inStandby = run.state === 'Standby' && !rolling
-  const showScene = run.state !== 'Rest'
   const challengeSpell = event?.challenge
     ? allSpells.find((sp) => sp.id === event.challenge!.spellId)
     : undefined
@@ -148,18 +147,17 @@ export function ExploreView() {
 
       <DungeonProgressTrack challenged={introduced} total={total} bossUnlocked={run.keyFound} />
 
-      {showScene && (
-        <div className="scene-window dungeon">
-          <AssetImage category="locations" assetKey={run.config.locationKey} alt="Dungeon location" />
-          {event && !inStandby && !rolling && (
-            <div className="explore-event-overlay">
-              <AssetImage category={event.imageCategory} assetKey={event.imageKey} alt={event.title} />
-            </div>
-          )}
-          <span className="scene-tag">{inStandby || rolling ? 'Standby' : (event?.title ?? 'Standby')}</span>
-          {rolling && <MoveRollModal resultTitle={null} onSettled={() => setRollSettled(true)} />}
-        </div>
-      )}
+      {/* The scene window is always on screen — every state, every prompt. */}
+      <div className="scene-window dungeon">
+        <AssetImage category="locations" assetKey={run.config.locationKey} alt="Dungeon location" />
+        {event && !inStandby && !rolling && (
+          <div className="explore-event-overlay">
+            <AssetImage category={event.imageCategory} assetKey={event.imageKey} alt={event.title} />
+          </div>
+        )}
+        <span className="scene-tag">{inStandby || rolling ? 'Standby' : (event?.title ?? 'Standby')}</span>
+        {rolling && <MoveRollModal resultTitle={null} onSettled={() => setRollSettled(true)} />}
+      </div>
 
       {/* Event narration, below the scene window. */}
       {event && !inStandby && !rolling && stage !== 'rest' && run.state !== 'Rest' && (

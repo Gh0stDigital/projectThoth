@@ -19,7 +19,9 @@ export function RestAreaView({ totem, usesSoFar, onRest, onLeave }: RestAreaView
   return (
     <div className="panel rest-area">
       <h3>⛺ Rest Area</h3>
-      <p className="muted">A dry alcove and a banked fire. Someone left supplies — at a price.</p>
+      {/* Flavor is the first thing to go on a short phone — the numbers
+          below are what the player actually decides on. */}
+      <p className="muted rest-flavor">A dry alcove and a banked fire. Someone left supplies — at a price.</p>
 
       <div className="stats-grid">
         <div className="stat-tile">
@@ -44,7 +46,7 @@ export function RestAreaView({ totem, usesSoFar, onRest, onLeave }: RestAreaView
         <span>
           ❤️ {totem.currentHp}/{totem.maxHp}
         </span>
-        <span className="faint">Rests used this run: {usesSoFar}</span>
+        <span className="faint">Rested {usesSoFar}×</span>
       </div>
 
       {quote.blockedReason === 'full_hp' && <p className="faint">You're already at full health.</p>}

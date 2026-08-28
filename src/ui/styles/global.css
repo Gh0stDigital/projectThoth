@@ -2254,17 +2254,25 @@ select:focus {
    whole screen appear to shift and rescale mid-answer; hiding them instead
    means everything that stays on screen keeps its normal size, and
    everything else returns unchanged when the answer is submitted.
-   What remains: the exit row, both HUDs (enemy and Totem HP both matter
-   while you answer), the answer board — and, in a battle, the scene image:
-   you're looking at the enemy you're trading blows with, so it stays put.
-   Only the explore screen's scene window goes, since there the image is
-   just the room you already walked into. */
+
+   The scene image is never one of the things that goes. You are always
+   looking at where you are — the enemy you're trading blows with, the
+   chest you're picking, the sealed door you're unpicking — so it stays on
+   screen and at a constant size through every event and every prompt.
+   What goes is only the readouts you don't act on mid-answer: the map
+   track, the words-seen meter, the narration box and the plateau banner. */
 .screen[data-challenge='true'] .dungeon-track,
-.screen[data-challenge='true'] .scene-window.dungeon,
 .screen[data-challenge='true'] .typewriter-box,
 .screen[data-challenge='true'] .progress-meter,
 .screen[data-challenge='true'] .plateau-banner {
   display: none;
+}
+
+/* Pin the explore scene too, for the same reason the battle one is pinned:
+   it is the layout's shock absorber by default, and shrinking as the answer
+   board opens is exactly the rescale this block exists to prevent. */
+.screen[data-challenge='true'] .scene-window.dungeon {
+  flex-shrink: 0;
 }
 
 /* The answer board takes the space the hidden windows leave behind. */
@@ -2508,12 +2516,17 @@ select:focus {
 
 /* ---- Battle: attack-card clue, barrier state, defense volley ---- */
 
-.card-clue {
-  margin-top: 2px;
+/* The masked English clue is the whole card face during an attack, so it
+   reads at the same weight the Korean word used to. */
+.word.card-clue {
   font-family: var(--font-mono, monospace);
-  font-size: 13px;
-  letter-spacing: 2px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 3px;
   color: var(--accent-cyan);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-barrier {
@@ -2704,4 +2717,52 @@ select:focus {
 .confirm-dialog p {
   font-size: 13px;
   line-height: 1.4;
+}
+
+/* The Rest Area's scene stays put like every other event's — it is never
+   the thing that shrinks to make room. */
+.screen[data-mode='rest'] .scene-window {
+  flex-shrink: 0;
+}
+
+/* Short phones: the Rest Area and the answer board each give up a little
+   of their own chrome so the scene window never has to. */
+@media (max-height: 720px) {
+  .rest-flavor {
+    display: none;
+  }
+
+  .rest-area .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .rest-area .stats-grid .stat-tile {
+    padding: 6px 4px;
+  }
+
+  .rest-area .stats-grid .value {
+    font-size: 14px;
+  }
+
+  /* The answer board gives up its own slack — never the scene window, and
+     never a tile's 44px touch target. */
+  .challenge-prompt {
+    padding: 8px 8px;
+  }
+
+  .challenge-prompt .prompt-word {
+    font-size: 22px;
+  }
+
+  .tile-answer {
+    min-height: 40px;
+    margin-top: 4px;
+    padding: 4px;
+  }
+
+  .answer-slot {
+    height: 32px;
+    width: 30px;
+  }
 }
