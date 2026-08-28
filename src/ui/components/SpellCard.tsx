@@ -32,10 +32,12 @@ export function SpellCard({ spell, selected, disabled, clue, barrierCleared, onC
       tabIndex={disabled ? -1 : 0}
     >
       <div className="art">
-        <AssetImage category="spells" assetKey={artKey} alt={spell.korean} />
+        <AssetImage category="spells" assetKey={artKey} alt={clue ? 'Spellword' : spell.korean} />
       </div>
-      <div className="word">{spell.korean}</div>
-      {clue && <div className="card-clue">{clue}</div>}
+      {/* With a clue, the masked English IS the card face: showing the
+          Korean too would be handing over the answer the player is about
+          to be asked to produce. */}
+      {clue ? <div className="word card-clue">{clue}</div> : <div className="word">{spell.korean}</div>}
       {barrierCleared !== undefined && (
         <div className={`card-barrier ${barrierCleared ? 'done' : 'pending'}`}>
           {barrierCleared ? '🛡️ cleared' : '🛡️ needed'}
