@@ -56,6 +56,13 @@ export const spellBalance = {
 
 export const totemBalance = {
   maxLevel: 50,
+  /**
+   * Life Points are the Totem's run-level lives. A dungeon defeat (HP
+   * reaching 0) costs exactly one, never more; ordinary damage that leaves
+   * HP above 0 costs none. At 0 Life Points the Totem is permanently
+   * destroyed and can no longer be selected.
+   */
+  startingLifePoints: 3,
   xpToNextLevel(level: number): number {
     return 40 + level * 20
   },
@@ -151,37 +158,34 @@ export const battleBalance = {
   bossBaseHp: 80,
   /** Additional boss HP per word in the dungeon pool. */
   bossHpPerWord: 4,
+
+  /**
+   * How many defense prompts a single enemy attack can demand. One prompt
+   * is the common case; multi-prompt attacks are the pressure spike.
+   */
+  minDefensePrompts: 1,
+  maxDefensePrompts: 2,
+  /** Chance an ordinary enemy attack asks for more than one word. */
+  multiPromptChance: 0.25,
+  /** Bosses lean harder on multi-word attacks. */
+  bossMultiPromptChance: 0.55,
+  bossMaxDefensePrompts: 3,
+
+  /** Money awarded for defeating an ordinary enemy. */
+  enemyMoneyReward: 12,
+  /** Chance a defeated ordinary enemy drops a consumable. */
+  enemyItemDropChance: 0.3,
 }
 
 // ---------------------------------------------------------------------------
 // Random events
 // ---------------------------------------------------------------------------
 
-export type DungeonEventType =
-  | 'empty'
-  | 'branch'
-  | 'trap'
-  | 'treasure'
-  | 'shrine'
-  | 'rest'
-  | 'discovery'
-  | 'monster'
-  | 'special'
-
-export const eventWeights: Record<DungeonEventType, number> = {
-  empty: 10,
-  branch: 10,
-  trap: 14,
-  treasure: 14,
-  shrine: 8,
-  rest: 8,
-  discovery: 12,
-  monster: 26,
-  special: 6,
-}
-
-/** Never allow the same event type to appear more than this many times in a row. */
-export const maxRepeatEventStreak = 2
+// Event types, weights, direction modifiers and per-event balance now live
+// in config/dungeonEvents.ts. Re-exported here so the many modules that
+// already import DungeonEventType from '@/config/balance' keep working.
+export type { DungeonEventType } from './dungeonEvents'
+export { baseEventWeights, maxRepeatEventStreak } from './dungeonEvents'
 
 // ---------------------------------------------------------------------------
 // Answer tiles

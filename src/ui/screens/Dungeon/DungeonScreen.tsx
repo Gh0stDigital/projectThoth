@@ -11,6 +11,8 @@ export function DungeonScreen() {
 
   if (screenPhase === 'results') return <ResultsView />
   if (screenPhase === 'config' || !run) return <DungeonConfigScreen />
+  // A live battle owns the screen outright — Standby menus are unreachable
+  // until it ends, which is what keeps exploration and combat from mixing.
   if (battle) return <BattleView />
   return <ExploreView />
 }

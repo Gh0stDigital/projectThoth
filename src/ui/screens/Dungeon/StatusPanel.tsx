@@ -26,7 +26,9 @@ export function StatusPanel({ totem, run, totemSet, challenged, onClose }: Statu
         </div>
         <div className="status-hero-body">
           <h2>{totem.name}</h2>
-          <p className="muted">Level {totem.level}</p>
+          <p className="muted">
+            Level {totem.level} · ◆ {totem.lifePoints}/{totem.maxLifePoints} Life
+          </p>
           <div className="hp-row">
             <span>❤️ {totem.currentHp}/{totem.maxHp}</span>
             <div style={{ flex: 1 }}>
@@ -50,16 +52,16 @@ export function StatusPanel({ totem, run, totemSet, challenged, onClose }: Statu
             <div className="value">{tier?.label ?? run.config.tierId}</div>
           </div>
           <div className="stat-tile">
-            <div className="faint">Words Challenged</div>
+            <div className="faint">Words Introduced</div>
             <div className="value">{challenged}/{run.config.dungeonWordIds.length}</div>
           </div>
           <div className="stat-tile">
-            <div className="faint">Events</div>
-            <div className="value">{run.stats.eventsEncountered}</div>
+            <div className="faint">Turn</div>
+            <div className="value">{run.turn}</div>
           </div>
           <div className="stat-tile">
             <div className="faint">Foes Defeated</div>
-            <div className="value">{run.stats.monstersDefeated}</div>
+            <div className="value">{run.stats.enemiesDefeated}</div>
           </div>
           <div className="stat-tile">
             <div className="faint">Correct</div>
@@ -74,8 +76,8 @@ export function StatusPanel({ totem, run, totemSet, challenged, onClose }: Statu
             <div className="value">💰 {run.stats.moneyEarned}</div>
           </div>
           <div className="stat-tile">
-            <div className="faint">Boss</div>
-            <div className="value">{run.bossUnlocked ? 'OPEN' : 'Locked'}</div>
+            <div className="faint">Boss Door</div>
+            <div className="value">{run.bossDoorFound ? (run.keyFound ? 'OPEN' : 'Locked') : 'Unknown'}</div>
           </div>
         </div>
       </section>

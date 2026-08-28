@@ -1,240 +1,315 @@
-import { useCallback, useState } from 'react'
-import type { DungeonEventAction, DungeonEvent, DungeonRunState } from '@/domain/dungeon'
+import { useEffect, useState } from 'react'
+import type { DungeonState } from '@/domain/dungeon'
 import { useDungeonStore, challengedCount } from '@/state/dungeonStore'
 import { usePersistentStore } from '@/state/persistentStore'
+import { canEnterBoss } from '@/systems/dungeonSession'
 import { AssetImage } from '@/ui/components/AssetImage'
 import { TypewriterText } from '@/ui/components/TypewriterText'
+import { Bar } from '@/ui/components/Bar'
 import { ProgressMeter } from '@/ui/components/ProgressMeter'
 import { DungeonProgressTrack } from '@/ui/components/DungeonProgressTrack'
 import { TotemPanel } from '@/ui/components/TotemPanel'
 import { MoveRollModal } from '@/ui/components/MoveRollModal'
+import { RunHud } from '@/ui/components/RunHud'
 import { ChallengeView } from './ChallengeView'
 import { WordInfoPanel } from './WordInfoPanel'
 import { ItemPanel } from './ItemPanel'
 import { StatusPanel } from './StatusPanel'
-import { RoomActions } from './RoomActions'
+import { StandbyActions } from './StandbyActions'
+import { MagicRoomView } from './MagicRoomView'
+import { RestAreaView } from './RestAreaView'
+import {
+  BossDoorNotice,
+  DirectionChoices,
+  KeyRoomView,
+  RewardSummary,
+  TreasureChoice,
+} from './EventActionViews'
 
-function actionLabel(action: DungeonEventAction, event: DungeonEvent): string {
-  if (action === 'attempt' && event.type === 'monster') return '⚔️ Fight'
-  switch (action) {
-    case 'proceed':
-      return event.type === 'special' && event.actions.includes('enter_boss') ? 'Keep Exploring' : 'Continue'
-    case 'attempt':
-      return 'Investigate'
-    case 'flee':
-      return 'Flee'
-    case 'enter_boss':
-      return '⚔️ Enter Boss Room'
-    case 'skip':
-      return 'Skip'
-    default:
-      return action
-  }
+const modeLabels: Record<DungeonState, string> = {
+  DungeonSetup: 'Setup',
+  Standby: 'Standby',
+  Rolling: 'Moving',
+  ResolvingEvent: 'Event',
+  VocabularyInput: 'Answering',
+  Battle: 'Battle',
+  Rest: 'Rest Area',
+  BossBattle: 'Boss Battle',
+  Results: 'Results',
+  Defeat: 'Defeated',
 }
 
 /**
- * The dialogue box only — its buttons render separately, down in the hub's
- * action slot, so everything tappable sits together at the bottom.
+ * The non-battle half of a dungeon run: Standby, the dice roll, and every
+ * event that isn't combat. Which of those is on screen is decided by the
+ * run's explicit state plus its event stage — this component never decides
+ * for itself what is legal, it only renders what the store says is current.
  */
-function EventDialogue({
-  event,
-  charsPerSecond,
-  onRevealed,
-}: {
-  event: DungeonEvent
-  charsPerSecond: number
-  onRevealed: () => void
-}) {
-  return <TypewriterText lines={event.bodyText} charsPerSecond={charsPerSecond} onRevealed={onRevealed} />
-}
-
-function ResolutionDialogue({
-  run,
-  charsPerSecond,
-  onContinue,
-  onRevealed,
-}: {
-  run: DungeonRunState
-  charsPerSecond: number
-  onContinue: () => void
-  onRevealed: () => void
-}) {
-  return (
-    <TypewriterText
-      lines={run.lastOutcomeText}
-      charsPerSecond={charsPerSecond}
-      onTapComplete={onContinue}
-      onRevealed={onRevealed}
-    />
-  )
-}
-
 export function ExploreView() {
   const run = useDungeonStore((s) => s.run)!
+  const stage = useDungeonStore((s) => s.stage)
+  const puzzle = useDungeonStore((s) => s.puzzle)
+  const rolling = useDungeonStore((s) => s.rolling)
   const activePanel = useDungeonStore((s) => s.activePanel)
+
   const openPanel = useDungeonStore((s) => s.openPanel)
   const closePanel = useDungeonStore((s) => s.closePanel)
   const toggleWordInfo = useDungeonStore((s) => s.toggleWordInfo)
-  const chooseEventAction = useDungeonStore((s) => s.chooseEventAction)
-  const submitEventChallengeAnswer = useDungeonStore((s) => s.submitEventChallengeAnswer)
-  const continueExploring = useDungeonStore((s) => s.continueExploring)
-  const moveToNextEvent = useDungeonStore((s) => s.moveToNextEvent)
-  const enterBossFromRoom = useDungeonStore((s) => s.enterBossFromRoom)
+  const move = useDungeonStore((s) => s.move)
+  const finishRoll = useDungeonStore((s) => s.finishRoll)
+  const acknowledgeEvent = useDungeonStore((s) => s.acknowledgeEvent)
+  const attemptTreasure = useDungeonStore((s) => s.attemptTreasure)
+  const leaveTreasure = useDungeonStore((s) => s.leaveTreasure)
+  const submitEventAnswer = useDungeonStore((s) => s.submitEventAnswer)
+  const guessSyllable = useDungeonStore((s) => s.guessSyllable)
+  const finishMagicRoom = useDungeonStore((s) => s.finishMagicRoom)
+  const chooseDirection = useDungeonStore((s) => s.chooseDirection)
+  const takeKey = useDungeonStore((s) => s.takeKey)
+  const openRestArea = useDungeonStore((s) => s.openRestArea)
+  const leaveRest = useDungeonStore((s) => s.leaveRest)
+  const buyRest = useDungeonStore((s) => s.buyRest)
+  const askEnterBossDoor = useDungeonStore((s) => s.askEnterBossDoor)
+  const cancelEnterBossDoor = useDungeonStore((s) => s.cancelEnterBossDoor)
+  const enterBossDoor = useDungeonStore((s) => s.enterBossDoor)
+  const confirmingBoss = useDungeonStore((s) => s.confirmingBoss)
   const useItem = useDungeonStore((s) => s.useItem)
-  const exitToMenu = useDungeonStore((s) => s.exitToMenu)
+  const abandonRun = useDungeonStore((s) => s.abandonRun)
+  const tickEventTimer = useDungeonStore((s) => s.tickEventTimer)
 
   const allSpells = usePersistentStore((s) => s.spells)
   const totems = usePersistentStore((s) => s.totems)
   const spellSets = usePersistentStore((s) => s.spellSets)
   const inventory = usePersistentStore((s) => s.inventory)
   const charsPerSecond = usePersistentStore((s) => s.settings.typewriterCharsPerSecond)
+
   const totem = totems.find((t) => t.id === run.config.totemId)!
   const totemSet = spellSets.find((s) => s.id === run.config.totemSpellSetId) ?? null
+  const event = run.currentEvent
 
-  // The Move action rolls a die in a popup; the underlying event is
-  // generated immediately so the roll can reveal what was found, but the
-  // player stays on the modal until they dismiss it.
-  const [rolling, setRolling] = useState(false)
+  // Dialogue must finish revealing before its buttons appear, so a tap
+  // meant for the text can't land on an action.
+  //
+  // Keyed on the event and whether outcome text has replaced the intro —
+  // deliberately NOT on the stage, so advancing within one event (reading
+  // a chest, then choosing to open it) doesn't retype the same lines.
+  const showingOutcome = run.lastOutcomeText.length > 0
+  const dialogueKey = `${event?.id ?? 'none'}:${showingOutcome ? 'outcome' : 'intro'}`
+  const [revealedKey, setRevealedKey] = useState<string | null>(null)
+  const dialogueRevealed = revealedKey === dialogueKey
+
   const [rollSettled, setRollSettled] = useState(false)
-  const handleMove = useCallback(() => {
-    setRollSettled(false)
-    setRolling(true)
-    moveToNextEvent()
-  }, [moveToNextEvent])
 
-  // Answer + decoy tiles for the active challenge, both drawn from this
-  // run's own word pool so decoys are words the player is actually studying.
-  const challengeSpell = run.currentEvent?.challenge
-    ? allSpells.find((sp) => sp.id === run.currentEvent!.challenge!.spellId)
+  // The trap countdown. Paused whenever a panel is open or the tab is
+  // hidden, and torn down the moment the timer clears — so exactly one
+  // event timer can ever be running.
+  const timerRunning = !!run.eventTimer?.running && !activePanel
+  useEffect(() => {
+    if (!timerRunning) return
+    const id = window.setInterval(() => tickEventTimer(0.25), 250)
+    return () => window.clearInterval(id)
+  }, [timerRunning, tickEventTimer])
+  const introduced = challengedCount(run)
+  const total = run.config.dungeonWordIds.length
+
+  const inStandby = run.state === 'Standby' && !rolling
+  const showScene = run.state !== 'Rest'
+  const challengeSpell = event?.challenge
+    ? allSpells.find((sp) => sp.id === event.challenge!.spellId)
     : undefined
+  const asksForKorean = event?.challenge?.direction === 'eng_to_kor'
   const answersInRun = run.config.dungeonWordIds
     .map((id) => allSpells.find((sp) => sp.id === id))
     .filter((sp): sp is (typeof allSpells)[number] => !!sp)
 
-  const event = run.currentEvent
-  const dialogueKey = `${run.phase}:${event?.id ?? 'none'}`
-  const [revealedKey, setRevealedKey] = useState<string | null>(null)
-  const dialogueRevealed = revealedKey === dialogueKey
-
-  // Treat the screen as "still in the room" while the die is rolling: the
-  // next event is already generated (so the roll can name it), but
-  // revealing it behind the modal would spoil the roll.
-  const inRoom = run.phase === 'room' || rolling
-  if (!inRoom && !event) return null
-
-  const challenged = challengedCount(run)
-  const total = run.config.dungeonWordIds.length
-  const showPersistentBossButton =
-    run.bossUnlocked && run.phase === 'event' && !!event && !event.actions.includes('enter_boss')
+  const answeringChallenge =
+    run.state === 'VocabularyInput' && !!event?.challenge && !!challengeSpell && stage !== 'trap_result' && stage !== 'treasure_result' && stage !== 'reward'
+  // Inside an event (either still reading it, or answering//resolving it).
+  const inEvent = run.state === 'ResolvingEvent' || run.state === 'VocabularyInput'
 
   return (
-    <div className="screen" data-challenge={run.phase === 'challenge' ? 'true' : undefined}>
+    <div
+      className="screen"
+      // Anything that asks the player to commit to an answer or a path is
+      // an "answering mode" and sheds the same non-essential chrome; a
+      // four-way fork simply does not fit beside a scene image on a short
+      // phone, and the paths carry their own flavor text.
+      data-challenge={
+        answeringChallenge || stage === 'magic_room' || stage === 'direction_choice' ? 'true' : undefined
+      }
+      data-mode={run.state === 'Rest' ? 'rest' : undefined}
+    >
       <div className="row">
-        <button className="btn btn-ghost btn-sm" onClick={exitToMenu}>
-          ✕ Exit Dungeon
+        <button className="btn btn-ghost btn-sm" onClick={abandonRun}>
+          ✕ Leave Dungeon
         </button>
       </div>
 
-      <DungeonProgressTrack challenged={challenged} total={total} bossUnlocked={run.bossUnlocked} />
+      <RunHud run={run} totem={totem} modeLabel={modeLabels[run.state]} />
 
-      <div className="scene-window dungeon">
-        <AssetImage category="locations" assetKey={run.config.locationKey} alt="Dungeon location" />
-        {event && !inRoom && (
-          <div className="explore-event-overlay">
-            <AssetImage category={event.imageCategory} assetKey={event.imageKey} alt={event.title} />
-          </div>
-        )}
-        <span className="scene-tag">
-          {inRoom ? (run.roomKind === 'entrance' ? 'Entrance' : 'Intermission') : event!.title}
-        </span>
-        {rolling && <MoveRollModal resultTitle={event?.title ?? null} onSettled={() => setRollSettled(true)} />}
-      </div>
+      <DungeonProgressTrack challenged={introduced} total={total} bossUnlocked={run.keyFound} />
 
-      {run.phase === 'event' && event && !rolling && (
-        <EventDialogue
+      {showScene && (
+        <div className="scene-window dungeon">
+          <AssetImage category="locations" assetKey={run.config.locationKey} alt="Dungeon location" />
+          {event && !inStandby && !rolling && (
+            <div className="explore-event-overlay">
+              <AssetImage category={event.imageCategory} assetKey={event.imageKey} alt={event.title} />
+            </div>
+          )}
+          <span className="scene-tag">{inStandby || rolling ? 'Standby' : (event?.title ?? 'Standby')}</span>
+          {rolling && <MoveRollModal resultTitle={null} onSettled={() => setRollSettled(true)} />}
+        </div>
+      )}
+
+      {/* Event narration, below the scene window. */}
+      {event && !inStandby && !rolling && stage !== 'rest' && run.state !== 'Rest' && (
+        <TypewriterText
           key={dialogueKey}
-          event={event}
+          lines={showingOutcome ? run.lastOutcomeText : event.bodyText}
           charsPerSecond={charsPerSecond}
           onRevealed={() => setRevealedKey(dialogueKey)}
         />
       )}
 
-      {run.phase === 'resolution' && (
-        <ResolutionDialogue
-          key={dialogueKey}
-          run={run}
-          charsPerSecond={charsPerSecond}
-          onContinue={continueExploring}
-          onRevealed={() => setRevealedKey(dialogueKey)}
-        />
-      )}
+      {inStandby && run.standbyNotice && <div className="room-notice">{run.standbyNotice}</div>}
 
       <TotemPanel totem={totem} compact />
 
-      <ProgressMeter challenged={challenged} total={total} bossUnlocked={run.bossUnlocked} onOpenWordInfo={toggleWordInfo} />
+      <ProgressMeter
+        challenged={introduced}
+        total={total}
+        bossUnlocked={run.keyFound}
+        onOpenWordInfo={toggleWordInfo}
+      />
 
-      {inRoom && run.phase === 'room' && (
-        <RoomActions
-          roomKind={run.roomKind}
-          notice={run.roomNotice}
-          bossUnlocked={run.bossUnlocked}
-          onMove={handleMove}
-          onCheckWords={() => openPanel('words')}
-          onUseItem={() => openPanel('items')}
-          onStatus={() => openPanel('status')}
-          onEnterBoss={enterBossFromRoom}
-        />
+      {run.eventTimer && (
+        <div className="timer-row">
+          <span>⏱ {Math.ceil(run.eventTimer.remainingSeconds)}s</span>
+          <div style={{ flex: 1 }}>
+            <Bar value={run.eventTimer.remainingSeconds} max={run.eventTimer.totalSeconds} kind="timer" thin />
+          </div>
+        </div>
       )}
+
+      {/* ---- Action slot: exactly one of these is live at a time ---- */}
 
       {rolling && (
         <button
           className="btn btn-primary btn-block"
           disabled={!rollSettled}
-          onClick={() => setRolling(false)}
+          onClick={() => {
+            setRollSettled(false)
+            finishRoll()
+          }}
         >
           {rollSettled ? 'Continue →' : 'Rolling…'}
         </button>
       )}
 
-      {run.phase === 'event' && event && !rolling && dialogueRevealed && (
-        <div className="action-bar">
-          {event.actions.map((action) => (
-            <button key={action} className="btn btn-primary" onClick={() => chooseEventAction(action)}>
-              {actionLabel(action, event)}
-            </button>
-          ))}
-        </div>
+      {inStandby && (
+        <StandbyActions
+          canEnterBoss={canEnterBoss(run)}
+          bossDoorFound={run.bossDoorFound}
+          keyFound={run.keyFound}
+          restAreaFound={run.restAreaFound}
+          onMove={move}
+          onCheckTotem={() => openPanel('status')}
+          onCheckWords={() => openPanel('words')}
+          onUseItem={() => openPanel('items')}
+          onEnterBoss={askEnterBossDoor}
+          onReturnToRest={openRestArea}
+        />
       )}
 
-      {run.phase === 'resolution' && dialogueRevealed && (
-        <button className="btn btn-primary btn-block" onClick={continueExploring}>
-          Continue →
-        </button>
+      {run.state === 'Rest' && (
+        <RestAreaView
+          totem={totem}
+          usesSoFar={run.restUses}
+          onRest={buyRest}
+          onLeave={leaveRest}
+        />
       )}
 
-      {run.phase === 'challenge' && event?.challenge && challengeSpell && (
-        <ChallengeView
-          challenge={event.challenge}
-          answer={event.challenge.direction === 'eng_to_kor' ? challengeSpell.korean : challengeSpell.english}
-          decoyPool={answersInRun.map((sp) =>
-            event.challenge!.direction === 'eng_to_kor' ? sp.korean : sp.english,
+      {inEvent && dialogueRevealed && !answeringChallenge && (
+        <>
+          {(stage === 'intro' || stage === 'treasure_choice') && event?.type === 'treasure' && (
+            <TreasureChoice onAttempt={attemptTreasure} onLeave={leaveTreasure} />
           )}
-          onSubmit={submitEventChallengeAnswer}
+
+          {stage === 'direction_choice' && event?.directionChoices && (
+            <DirectionChoices choices={event.directionChoices} onChoose={chooseDirection} />
+          )}
+
+          {stage === 'key_room' && <KeyRoomView onTake={takeKey} />}
+
+          {stage === 'magic_room' && puzzle && (
+            <MagicRoomView puzzle={puzzle} onGuess={guessSyllable} onFinish={finishMagicRoom} />
+          )}
+
+          {/* Reward / plain outcome acknowledgements. */}
+          {(stage === 'reward' || stage === 'treasure_result') &&
+            (run.pendingReward ? (
+              <RewardSummary reward={run.pendingReward} onContinue={acknowledgeEvent} />
+            ) : (
+              <button className="btn btn-primary btn-block" onClick={acknowledgeEvent}>
+                Continue →
+              </button>
+            ))}
+
+          {stage === 'trap_result' && (
+            <button className="btn btn-primary btn-block" onClick={acknowledgeEvent}>
+              Continue →
+            </button>
+          )}
+
+          {stage === 'intro' &&
+            event &&
+            event.type !== 'treasure' &&
+            (event.type === 'boss_door' ? (
+              <BossDoorNotice keyFound={run.keyFound} onContinue={acknowledgeEvent} />
+            ) : (
+              <button className="btn btn-primary btn-block" onClick={acknowledgeEvent}>
+                {event.type === 'battle' ? '⚔️ Fight' : 'Continue →'}
+              </button>
+            ))}
+        </>
+      )}
+
+      {answeringChallenge && (
+        <ChallengeView
+          challenge={event!.challenge!}
+          answer={asksForKorean ? challengeSpell!.korean : challengeSpell!.english}
+          decoyPool={answersInRun.map((sp) => (asksForKorean ? sp.korean : sp.english))}
+          onSubmit={submitEventAnswer}
+          submitLabel={event!.type === 'trap' ? 'Disarm!' : 'Unlock!'}
         />
       )}
 
       <div style={{ flex: 1 }} />
 
-      {showPersistentBossButton && (
-        <button className="btn btn-danger btn-block" onClick={() => chooseEventAction('enter_boss')}>
-          ⚔️ Challenge the Boss
-        </button>
+      {/* Entering the boss is irreversible — there is no way back to
+          exploration afterwards — so it takes an explicit confirmation. */}
+      {confirmingBoss && (
+        <div className="overlay-backdrop" onClick={cancelEnterBossDoor}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <h2>Enter the Boss Door?</h2>
+            <p className="muted">
+              The key turns once. You cannot return to exploring this dungeon — the run ends in victory or defeat.
+            </p>
+            <button className="btn btn-danger btn-block" onClick={enterBossDoor}>
+              ⚔️ Enter
+            </button>
+            <button className="btn btn-ghost btn-block" onClick={cancelEnterBossDoor}>
+              Not yet
+            </button>
+          </div>
+        </div>
       )}
 
       {activePanel === 'words' && <WordInfoPanel run={run} battle={null} onClose={closePanel} />}
       {activePanel === 'items' && <ItemPanel inventory={inventory} onUse={useItem} onClose={closePanel} />}
       {activePanel === 'status' && (
-        <StatusPanel totem={totem} run={run} totemSet={totemSet} challenged={challenged} onClose={closePanel} />
+        <StatusPanel totem={totem} run={run} totemSet={totemSet} challenged={introduced} onClose={closePanel} />
       )}
     </div>
   )

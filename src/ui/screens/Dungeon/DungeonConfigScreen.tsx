@@ -7,6 +7,7 @@ import { AssetImage } from '@/ui/components/AssetImage'
 import { TotemPanel } from '@/ui/components/TotemPanel'
 import { dungeonTiers, type DungeonTierId } from '@/config/balance'
 import { buildDungeonConfig } from '@/systems/dungeonSession'
+import { isUsable } from '@/systems/totemManager'
 
 export function DungeonConfigScreen() {
   const goTo = useUiStore((s) => s.goTo)
@@ -17,7 +18,9 @@ export function DungeonConfigScreen() {
   const setLastSelection = usePersistentStore((s) => s.setLastDungeonSelection)
   const beginDungeon = useDungeonStore((s) => s.beginDungeon)
 
-  const totem = totems.find((t) => t.id === activeTotemId) ?? totems[0]
+  // A destroyed Totem can never start a run.
+  const active = totems.find((t) => t.id === activeTotemId)
+  const totem = active && isUsable(active) ? active : totems.find(isUsable)
 
   const [totemSetId, setTotemSetId] = useState<string | null>(totem?.equippedSpellSetId ?? lastSelection.totemSpellSetId)
   const [dungeonSetId, setDungeonSetId] = useState<string | null>(lastSelection.dungeonSpellSetId ?? totemSetId)
@@ -27,7 +30,7 @@ export function DungeonConfigScreen() {
   const dungeonSet = spellSets.find((s) => s.id === dungeonSetId) ?? null
   const tier = dungeonTiers.find((t) => t.id === tierId)!
 
-  const canStart = !!totem && !!totemSet && totemSet.spellIds.length > 0 && !!dungeonSet && dungeonSet.spellIds.length > 0
+  const canStart = !!totem && isUsable(totem) && !!totemSet && totemSet.spellIds.length > 0 && !!dungeonSet && dungeonSet.spellIds.length > 0
 
   function handleStart() {
     if (!totem || !totemSet || !dungeonSet) return
@@ -40,7 +43,14 @@ export function DungeonConfigScreen() {
     <div className="screen screen-tight">
       <TopBar title="Dungeon" onBack={() => goTo('menu')} />
 
-      {!totem && <p className="muted">Create a Totem first.</p>}
+      {!totem && (
+        <div className="empty-state">
+          <span className="glyph">🗿</span>
+          <p>
+            No Totem can enter a dungeon right now. Raise a new one from the Totem screen.
+          </p>
+        </div>
+      )}
 
       {spellSets.length === 0 && (
         <div className="empty-state">

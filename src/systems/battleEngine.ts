@@ -1,7 +1,8 @@
 import type { Spell } from '@/domain/spell'
-import type { BattleState, EnemyCombatant, PlateauRequirement } from '@/domain/battle'
+import type { BattleState, DefenseSequence, EnemyCombatant, PlateauRequirement } from '@/domain/battle'
 import type { Challenge } from '@/domain/challenge'
 import { battleBalance, type DungeonTierDef } from '@/config/balance'
+import { mimicBalance } from '@/config/dungeonEvents'
 import { pickFlavor } from '@/config/assets'
 import { buildDeck, playCard, visibleCards } from './deck'
 import { generateChallenge, resolveChallenge, type ChallengeResolution } from './challengeEngine'
@@ -34,6 +35,25 @@ export function spawnEnemy(seed: string, tier: DungeonTierDef): EnemyCombatant {
   }
 }
 
+/**
+ * A Mimic: an ordinary foe's shape, but tougher, angrier and worth more.
+ * Spawned only from an opened treasure chest.
+ */
+export function spawnMimic(seed: string, tier: DungeonTierDef): EnemyCombatant {
+  const base = spawnEnemy(seed, tier)
+  const hp = Math.round(base.maxHp * mimicBalance.hpMultiplier)
+  return {
+    ...base,
+    kind: 'mimic',
+    name: 'Mimic',
+    imageCategory: 'treasure',
+    imageKey: 'open',
+    maxHp: hp,
+    currentHp: hp,
+    damage: Math.round(base.damage * mimicBalance.damageMultiplier),
+  }
+}
+
 export function spawnBoss(seed: string, tier: DungeonTierDef, wordCount: number): EnemyCombatant {
   const hp = battleBalance.bossBaseHp + wordCount * battleBalance.bossHpPerWord
   return {
@@ -61,11 +81,34 @@ export function startBattle(
     deck: buildDeck(totemDeckSpellIds),
     phase: 'player_select',
     activeChallenge: null,
+    defense: null,
     timer: null,
-    log: [isBoss ? 'The boss blocks your path!' : 'A foe appears!'],
+    log: [isBoss ? 'The boss blocks your path!' : `${enemy.name} appears!`],
     totemDamageTakenThisBattle: 0,
     lastResult: null,
+    rewardsGranted: false,
   }
+}
+
+/**
+ * Cards the player may attack with.
+ *
+ * While a boss barrier is up the *whole dungeon word set* stays selectable,
+ * not just the rotating hand — otherwise a word buried in the deck could
+ * lock the barrier shut. A failed attempt never removes a word either: the
+ * card returns to the deck, so nothing becomes permanently unavailable.
+ */
+export function selectableSpellIds(state: BattleState, dungeonWordIds: string[] | null): string[] {
+  const barrierUp = state.isBoss && state.plateau && !isFullyCleared(state.plateau)
+  if (barrierUp && dungeonWordIds && dungeonWordIds.length > 0) {
+    const seen = new Set<string>()
+    return [...dungeonWordIds, ...state.deck.order].filter((id) => {
+      if (seen.has(id)) return false
+      seen.add(id)
+      return true
+    })
+  }
+  return visibleHand(state)
 }
 
 export function visibleHand(state: BattleState, count: number = battleBalance.visibleHandSize): string[] {
@@ -73,11 +116,27 @@ export function visibleHand(state: BattleState, count: number = battleBalance.vi
 }
 
 export function beginPlayerChallenge(state: BattleState, spell: Spell): BattleState {
-  // Attacking: the player picked a Korean Spell card, so the card's Korean
-  // word is the prompt and they supply the English meaning. The English is
-  // never shown on the card or the prompt — that would give the answer away.
-  const challenge = generateChallenge(spell, 'attack', 'kor_to_eng')
+  // Attacking: the card shows a masked clue built from the English meaning
+  // (Courage -> C_____E) and the player supplies the Korean word. The full
+  // English is never shown on the card front or in the prompt.
+  const challenge = generateChallenge(spell, 'attack', 'eng_to_kor')
   return { ...state, phase: 'player_challenge', activeChallenge: challenge, lastResult: null }
+}
+
+/**
+ * The masked clue shown on an attack card: first and last letter in caps,
+ * everything between hidden. Answers too short to mask meaningfully (three
+ * characters or fewer) fall back to first-letter-only, so a two-letter word
+ * can never render as its own answer.
+ */
+export function attackCardClue(english: string): string {
+  const word = english.trim()
+  if (word.length === 0) return '???'
+  const first = word.split(/\s+/)[0]
+  if (first.length <= 3) return `${first[0].toUpperCase()}${'_'.repeat(Math.max(2, first.length - 1))}`
+  const head = first[0].toUpperCase()
+  const tail = first[first.length - 1].toUpperCase()
+  return `${head}${'_'.repeat(first.length - 2)}${tail}`
 }
 
 export interface AttackOutcome {
@@ -139,27 +198,56 @@ export function resolvePlayerAttack(state: BattleState, spell: Spell, submitted:
   }
 }
 
+/**
+ * Starts an enemy attack, which may demand several defense prompts in a
+ * row. Prompts show the Korean word; the player supplies an accepted
+ * English meaning under a visible timer.
+ */
 export function beginEnemyChallenge(
   state: BattleState,
   dungeonSpells: Spell[],
   timerSeconds: number,
   rng: () => number = Math.random,
 ): BattleState {
-  const pool = dungeonSpells.length > 0 ? dungeonSpells : []
-  if (pool.length === 0) {
-    return { ...state, phase: 'enemy_intro', activeChallenge: null, timer: null }
+  if (dungeonSpells.length === 0) {
+    return { ...state, phase: 'enemy_intro', activeChallenge: null, defense: null, timer: null }
   }
-  const spell = pool[Math.floor(rng() * pool.length)]
-  // Defending: the enemy throws an English meaning at the player, who must
-  // produce the Korean word before the timer runs out.
-  const challenge = generateChallenge(spell, 'defense', 'eng_to_kor')
+
+  const count = defensePromptCount(state.isBoss, dungeonSpells.length, rng)
+  const challenges: Challenge[] = []
+  const used = new Set<string>()
+  for (let i = 0; i < count; i++) {
+    // Prefer distinct words per attack, but never loop forever on a tiny pool.
+    let spell = dungeonSpells[Math.floor(rng() * dungeonSpells.length)]
+    for (let tries = 0; tries < 8 && used.has(spell.id) && used.size < dungeonSpells.length; tries++) {
+      spell = dungeonSpells[Math.floor(rng() * dungeonSpells.length)]
+    }
+    used.add(spell.id)
+    challenges.push(generateChallenge(spell, 'defense', 'kor_to_eng'))
+  }
+
+  const defense: DefenseSequence = { challenges, index: 0, results: [] }
   return {
     ...state,
     phase: 'enemy_challenge',
-    activeChallenge: challenge,
+    defense,
+    activeChallenge: challenges[0],
     timer: { totalSeconds: timerSeconds, remainingSeconds: timerSeconds, running: true },
     lastResult: null,
   }
+}
+
+/** How many words this attack demands. Bosses lean harder on multi-word. */
+export function defensePromptCount(isBoss: boolean, poolSize: number, rng: () => number): number {
+  const chance = isBoss ? battleBalance.bossMultiPromptChance : battleBalance.multiPromptChance
+  const max = Math.min(
+    poolSize,
+    isBoss ? battleBalance.bossMaxDefensePrompts : battleBalance.maxDefensePrompts,
+  )
+  if (max <= battleBalance.minDefensePrompts) return battleBalance.minDefensePrompts
+  if (rng() >= chance) return battleBalance.minDefensePrompts
+  const extra = 1 + Math.floor(rng() * (max - battleBalance.minDefensePrompts))
+  return Math.min(max, battleBalance.minDefensePrompts + extra)
 }
 
 export function tickTimer(state: BattleState, deltaSeconds: number): BattleState {
@@ -173,24 +261,55 @@ export function setTimerRunning(state: BattleState, running: boolean): BattleSta
   return { ...state, timer: { ...state.timer, running } }
 }
 
-export interface DefenseOutcome {
+/**
+ * Damage from an enemy attack, given how many of its prompts were answered
+ * correctly.
+ *
+ * Partial defense already existed for single prompts (a correct answer let
+ * `defendedDamageFraction` through rather than zero), so multi-prompt
+ * attacks extend the same idea: damage scales linearly from full damage at
+ * zero correct down to that same reduced fraction at all correct.
+ */
+export function defenseDamage(enemyDamage: number, correct: number, total: number): number {
+  if (total <= 0) return 0
+  const ratio = correct / total
+  const floor = battleBalance.defendedDamageFraction
+  const multiplier = 1 - ratio * (1 - floor)
+  return Math.round(enemyDamage * multiplier)
+}
+
+export interface DefensePromptOutcome {
   state: BattleState
   resolution: ChallengeResolution
+  /** The spell this prompt asked about. */
+  spellId: string
+  /** True once every prompt in the attack has been answered. */
+  sequenceComplete: boolean
+  /** Only meaningful when sequenceComplete — 0 until then. */
   damageToTotem: number
   plateauCleared: boolean
 }
 
-export function resolveEnemyAttack(
+/**
+ * Resolves ONE prompt of the current enemy attack. When more prompts
+ * remain the state advances to the next one with a fresh timer; when the
+ * last one is answered the accumulated damage is applied.
+ */
+export function resolveDefensePrompt(
   state: BattleState,
   spell: Spell,
   submitted: string,
   timedOut: boolean,
-): DefenseOutcome {
-  const challenge = state.activeChallenge as Challenge
+  timerSeconds: number,
+): DefensePromptOutcome {
+  const defense = state.defense!
+  const challenge = defense.challenges[defense.index]
   const resolution = timedOut
     ? forceIncorrect(spell, challenge)
     : resolveChallenge(spell, challenge, submitted, 'defense')
 
+  // A correct defense counts toward the boss barrier, exactly like a
+  // correct attack — which is what stops the barrier soft-locking.
   let plateau = state.plateau
   let plateauCleared = false
   if (resolution.correct && state.isBoss && plateau) {
@@ -201,31 +320,62 @@ export function resolveEnemyAttack(
     }
   }
 
-  const damageToTotem = resolution.correct
-    ? Math.round(state.enemy.damage * battleBalance.defendedDamageFraction)
-    : state.enemy.damage
+  const results = [...defense.results, resolution.correct]
+  const nextIndex = defense.index + 1
+  const complete = nextIndex >= defense.challenges.length
 
   const log = [
     ...state.log,
     resolution.correct
-      ? `You correctly recall "${challenge.prompt}" and block most of the damage.`
+      ? `You recall "${challenge.prompt}" in time.`
       : timedOut
-        ? `Too slow! "${challenge.prompt}" goes unanswered — full damage taken.`
-        : `Incorrect meaning for "${challenge.prompt}" — full damage taken.`,
+        ? `Too slow! "${challenge.prompt}" goes unanswered.`
+        : `Wrong meaning for "${challenge.prompt}".`,
   ]
+
+  if (!complete) {
+    return {
+      state: {
+        ...state,
+        plateau,
+        defense: { ...defense, index: nextIndex, results },
+        activeChallenge: defense.challenges[nextIndex],
+        timer: { totalSeconds: timerSeconds, remainingSeconds: timerSeconds, running: true },
+        log,
+        lastResult: resolution.correct ? 'correct' : 'incorrect',
+      },
+      resolution,
+      spellId: spell.id,
+      sequenceComplete: false,
+      damageToTotem: 0,
+      plateauCleared,
+    }
+  }
+
+  const correctCount = results.filter(Boolean).length
+  const damageToTotem = defenseDamage(state.enemy.damage, correctCount, results.length)
+  const summary =
+    correctCount === results.length
+      ? `Attack blocked — only ${damageToTotem} damage gets through.`
+      : correctCount === 0
+        ? `The attack lands in full for ${damageToTotem} damage!`
+        : `Partly blocked — ${correctCount}/${results.length} correct, ${damageToTotem} damage taken.`
 
   return {
     state: {
       ...state,
       plateau,
       phase: 'enemy_resolve',
+      defense: { ...defense, index: nextIndex, results },
       activeChallenge: null,
       timer: null,
       totemDamageTakenThisBattle: state.totemDamageTakenThisBattle + damageToTotem,
-      log,
-      lastResult: resolution.correct ? 'correct' : 'incorrect',
+      log: [...log, summary],
+      lastResult: correctCount === results.length ? 'correct' : 'incorrect',
     },
     resolution,
+    spellId: spell.id,
+    sequenceComplete: true,
     damageToTotem,
     plateauCleared,
   }
@@ -238,8 +388,13 @@ function forceIncorrect(spell: Spell, challenge: Challenge): ChallengeResolution
 }
 
 export function returnToPlayerTurn(state: BattleState): BattleState {
-  if (state.enemy.currentHp <= 0) return { ...state, phase: 'victory' }
-  return { ...state, phase: 'player_select' }
+  if (state.enemy.currentHp <= 0) return { ...state, phase: 'victory', defense: null }
+  return { ...state, phase: 'player_select', defense: null, activeChallenge: null, timer: null }
+}
+
+/** Flipped once a victory's rewards have been paid out, so they can't repeat. */
+export function markRewardsGranted(state: BattleState): BattleState {
+  return { ...state, rewardsGranted: true }
 }
 
 export function markDefeat(state: BattleState): BattleState {
