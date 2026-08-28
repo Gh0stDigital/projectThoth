@@ -6,6 +6,8 @@ import { pickFlavor } from '@/config/assets'
 import { SpellEditorForm } from './SpellEditorForm'
 import { SpellImportPanel } from './SpellImportPanel'
 import type { Spell } from '@/domain/spell'
+import { definitionsOf } from '@/domain/spell'
+import { elementDefFor, wordTypeDefs } from '@/config/wordTypes'
 
 export function SpellListTab() {
   const spells = usePersistentStore((s) => s.spells)
@@ -27,8 +29,10 @@ export function SpellListTab() {
     )
   }
 
+  // Search covers every populated definition, not just the first.
+  const q = query.trim().toLowerCase()
   const filtered = spells.filter(
-    (s) => !query || s.korean.includes(query) || s.english.toLowerCase().includes(query.toLowerCase()),
+    (s) => !q || s.korean.includes(query.trim()) || definitionsOf(s).some((d) => d.toLowerCase().includes(q)),
   )
 
   return (
@@ -66,8 +70,14 @@ export function SpellListTab() {
               <AssetImage category="spells" assetKey={artKey} alt={spell.korean} />
             </div>
             <div className="info" onClick={() => setEditing(spell)}>
-              <div className="kor">{spell.korean}</div>
-              <div className="eng">{spell.english}</div>
+              <div className="kor">
+                {spell.korean}
+                <span className={`element-chip element-${elementDefFor(spell.wordType).id}`}>
+                  {elementDefFor(spell.wordType).icon} {wordTypeDefs[spell.wordType].shortLabel}
+                </span>
+              </div>
+              {/* Blank optional definitions are dropped, never shown as empty rows. */}
+              <div className="eng">{definitionsOf(spell).join(' · ')}</div>
               <div className="row" style={{ marginTop: 4 }}>
                 <span className="faint">Lv {spell.level}</span>
                 <div style={{ flex: 1 }}>

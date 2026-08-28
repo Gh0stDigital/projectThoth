@@ -20,6 +20,7 @@ import {
   pruneSpellFromAllSets,
 } from '@/systems/spellSetManager'
 import { createTotem, equipSpellSet, isUsable } from '@/systems/totemManager'
+import { migrateSpells } from '@/systems/spellMigration'
 import { totemBalance } from '@/config/balance'
 
 export interface DungeonSelectionDraft {
@@ -59,7 +60,9 @@ function loadInitial(): PersistedData {
   // Shallow-merge with defaults so new fields introduced later don't break old saves.
   const defaults = defaultData()
   return {
-    spells: saved.spells ?? defaults.spells,
+    // Entries saved before word types and structured definitions existed
+    // are filled in with safe defaults rather than dropped.
+    spells: migrateSpells(saved.spells ?? defaults.spells),
     spellSets: saved.spellSets ?? defaults.spellSets,
     // For now every Totem displays the 'default' avatar (see
     // totemManager.createTotem) — override old saves too, since a Totem's

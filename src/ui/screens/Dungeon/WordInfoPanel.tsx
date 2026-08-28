@@ -1,5 +1,7 @@
 import type { DungeonRunState } from '@/domain/dungeon'
 import type { BattleState } from '@/domain/battle'
+import { definitionsOf } from '@/domain/spell'
+import { elementDefFor } from '@/config/wordTypes'
 import { usePersistentStore } from '@/state/persistentStore'
 import { SlidePanel } from '@/ui/components/SlidePanel'
 import { Bar } from '@/ui/components/Bar'
@@ -47,8 +49,9 @@ export function WordInfoPanel({ run, battle, onClose }: WordInfoPanelProps) {
             <div key={spell!.id} className="word-chip">
               <span className={`status-dot ${run.wordStats[spell!.id]?.introduced ? 'done' : 'pending'}`} />
               <span style={{ flex: 1 }}>
-                {spell!.korean} <span className="faint">— {spell!.english}</span>
+                {spell!.korean} <span className="faint">— {definitionsOf(spell!).join(', ')}</span>
               </span>
+              <span title={elementDefFor(spell!.wordType).label}>{elementDefFor(spell!.wordType).icon}</span>
               <span className="faint">Lv{spell!.level}</span>
               <div style={{ width: 40 }}>
                 <Bar value={spell!.charge} max={spell!.maxCharge} kind="charge" thin />
@@ -64,8 +67,9 @@ export function WordInfoPanel({ run, battle, onClose }: WordInfoPanelProps) {
           {totemSpells.map((spell) => (
             <div key={spell!.id} className="word-chip">
               <span style={{ flex: 1 }}>
-                {spell!.korean} <span className="faint">— {spell!.english}</span>
+                {spell!.korean} <span className="faint">— {definitionsOf(spell!).join(', ')}</span>
               </span>
+              <span title={elementDefFor(spell!.wordType).label}>{elementDefFor(spell!.wordType).icon}</span>
               <span className="faint">Lv{spell!.level}</span>
               <div style={{ width: 40 }}>
                 <Bar value={spell!.charge} max={spell!.maxCharge} kind="charge" thin />
