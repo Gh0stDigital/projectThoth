@@ -81,8 +81,6 @@ export function BattleView() {
         <span className="scene-tag">{battle.enemy.name}</span>
       </div>
 
-      <TotemPanel totem={totem} compact />
-
       <div className="enemy-hp-row">
         <div className="row">
           <span>{battle.enemy.name}</span>
@@ -92,6 +90,8 @@ export function BattleView() {
         </div>
         <Bar value={battle.enemy.currentHp} max={battle.enemy.maxHp} kind="hp" />
       </div>
+
+      <TotemPanel totem={totem} compact />
 
       {battle.isBoss && battle.plateau && plateauRemaining > 0 && (
         <div className="plateau-banner">

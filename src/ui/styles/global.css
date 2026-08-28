@@ -1968,6 +1968,20 @@ select:focus {
   height: 24dvh;
 }
 
+/* On a short phone the battle image, both HUDs and a full tile board don't
+   all fit at 24dvh. Take the space off the image for the entire battle —
+   the same size in every phase — instead of collapsing it the moment the
+   answer board opens. */
+@media (max-height: 720px) {
+  .scene-window.battle {
+    height: 15dvh;
+  }
+
+  .challenge-prompt {
+    padding: 10px 8px;
+  }
+}
+
 .room-flavor h3 {
   font-size: 13px;
 }
@@ -2233,10 +2247,13 @@ select:focus {
    whole screen appear to shift and rescale mid-answer; hiding them instead
    means everything that stays on screen keeps its normal size, and
    everything else returns unchanged when the answer is submitted.
-   What remains: the exit row, the Totem panel (its HP matters while you
-   answer), the battle's enemy HP + timer, and the answer board itself. */
+   What remains: the exit row, both HUDs (enemy and Totem HP both matter
+   while you answer), the answer board — and, in a battle, the scene image:
+   you're looking at the enemy you're trading blows with, so it stays put.
+   Only the explore screen's scene window goes, since there the image is
+   just the room you already walked into. */
 .screen[data-challenge='true'] .dungeon-track,
-.screen[data-challenge='true'] .scene-window,
+.screen[data-challenge='true'] .scene-window.dungeon,
 .screen[data-challenge='true'] .typewriter-box,
 .screen[data-challenge='true'] .progress-meter,
 .screen[data-challenge='true'] .plateau-banner {
@@ -2246,6 +2263,15 @@ select:focus {
 /* The answer board takes the space the hidden windows leave behind. */
 .screen[data-challenge='true'] .challenge-prompt {
   margin-top: 4px;
+}
+
+/* The battle scene stays put while you answer — you're looking at the enemy
+   you're trading blows with. It normally acts as the layout's shock
+   absorber, so pin it here: shrinking as the answer board appears is the
+   rescale this whole block exists to avoid. The short-screen rules below
+   make sure there's room for it without the squeeze. */
+.screen[data-challenge='true'] .scene-window.battle {
+  flex-shrink: 0;
 }
 
 .challenge-prompt {
