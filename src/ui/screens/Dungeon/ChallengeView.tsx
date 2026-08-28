@@ -31,6 +31,17 @@ export function ChallengeView({ challenge, answer, decoyPool, onSubmit, submitLa
   )
 
   const [picked, setPicked] = useState<AnswerTile[]>([])
+
+  // A multi-word enemy attack reuses this component for each prompt in the
+  // volley, so the tiles placed for the previous word must be cleared when
+  // the challenge changes — otherwise they linger in the answer row and the
+  // new board can never be assembled.
+  const [lastChallengeId, setLastChallengeId] = useState(challenge.id)
+  if (lastChallengeId !== challenge.id) {
+    setLastChallengeId(challenge.id)
+    setPicked([])
+  }
+
   const pickedIds = new Set(picked.map((t) => t.id))
   const assembled = assembledText(picked, board.joiner)
 

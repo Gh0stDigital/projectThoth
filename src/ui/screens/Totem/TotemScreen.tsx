@@ -6,6 +6,7 @@ import { AssetImage } from '@/ui/components/AssetImage'
 import { Bar } from '@/ui/components/Bar'
 import { SlidePanel } from '@/ui/components/SlidePanel'
 import { totemBalance } from '@/config/balance'
+import { isUsable } from '@/systems/totemManager'
 
 export function TotemScreen() {
   const goTo = useUiStore((s) => s.goTo)
@@ -14,8 +15,13 @@ export function TotemScreen() {
   const spellSets = usePersistentStore((s) => s.spellSets)
   const equipTotemSpellSet = usePersistentStore((s) => s.equipTotemSpellSet)
   const editName = usePersistentStore((s) => s.replaceTotem)
+  const createNewTotem = usePersistentStore((s) => s.createTotem)
+  const setActiveTotem = usePersistentStore((s) => s.setActiveTotem)
 
-  const totem = totems.find((t) => t.id === activeTotemId) ?? totems[0]
+  // Prefer a Totem that can still be played; a destroyed one is only shown
+  // as a memorial when nothing usable is left.
+  const totem = totems.find((t) => t.id === activeTotemId) ?? totems.find(isUsable) ?? totems[0]
+  const usable = totems.filter(isUsable)
   const [renaming, setRenaming] = useState(false)
   const [nameDraft, setNameDraft] = useState(totem?.name ?? '')
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -61,6 +67,24 @@ export function TotemScreen() {
         )}
 
         <p className="muted">Level {totem.level}</p>
+
+        <div className="life-points" title="Life Points">
+          {Array.from({ length: totem.maxLifePoints }, (_, i) => (
+            <span key={i} className={`life-pip${i < totem.lifePoints ? ' lit' : ''}`}>
+              {i < totem.lifePoints ? '◆' : '◇'}
+            </span>
+          ))}
+          <span className="faint">
+            {totem.lifePoints}/{totem.maxLifePoints} Life Points
+          </span>
+        </div>
+
+        {totem.destroyed && (
+          <div className="feedback-banner incorrect">
+            💀 This Totem has been destroyed and can no longer enter a dungeon.
+          </div>
+        )}
+
         <div style={{ margin: '6px 0' }}>
           <Bar value={totem.experience} max={xpNeeded} kind="xp" />
           <p className="faint">{totem.experience}/{xpNeeded} XP to next level</p>
@@ -92,6 +116,37 @@ export function TotemScreen() {
           <span className="faint">Change</span>
         </button>
       </div>
+
+      {totems.length > 1 && (
+        <div className="field">
+          <label>Your Totems</label>
+          <div className="list">
+            {totems.map((t) => (
+              <button
+                key={t.id}
+                className="card row"
+                disabled={!isUsable(t)}
+                style={{ width: '100%', textAlign: 'left', opacity: isUsable(t) ? 1 : 0.5 }}
+                onClick={() => setActiveTotem(t.id)}
+              >
+                <div>
+                  <div style={{ fontWeight: 700 }}>{t.name}</div>
+                  <div className="faint">
+                    Lv {t.level} · {t.destroyed ? 'destroyed' : `◆ ${t.lifePoints}/${t.maxLifePoints}`}
+                  </div>
+                </div>
+                {t.id === totem.id ? <span style={{ color: 'var(--accent-gold)' }}>✓ Active</span> : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {usable.length === 0 && (
+        <button className="btn btn-primary btn-block" onClick={() => createNewTotem('Totem')}>
+          🗿 Raise a New Totem
+        </button>
+      )}
 
       <div style={{ flex: 1 }} />
 

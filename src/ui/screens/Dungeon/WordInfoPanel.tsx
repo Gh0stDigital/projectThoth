@@ -24,7 +24,7 @@ export function WordInfoPanel({ run, battle, onClose }: WordInfoPanelProps) {
     <SlidePanel title="Word Information" onClose={onClose}>
       {battle?.plateau && (
         <section>
-          <h3>Boss Plateau</h3>
+          <h3>Boss Barrier</h3>
           <div className="list">
             {battle.plateau.map((req) => {
               const spell = spells.find((s) => s.id === req.spellId)
@@ -45,7 +45,7 @@ export function WordInfoPanel({ run, battle, onClose }: WordInfoPanelProps) {
         <div className="list">
           {dungeonSpells.map((spell) => (
             <div key={spell!.id} className="word-chip">
-              <span className={`status-dot ${run.challengedWordIds.includes(spell!.id) ? 'done' : 'pending'}`} />
+              <span className={`status-dot ${run.wordStats[spell!.id]?.introduced ? 'done' : 'pending'}`} />
               <span style={{ flex: 1 }}>
                 {spell!.korean} <span className="faint">— {spell!.english}</span>
               </span>

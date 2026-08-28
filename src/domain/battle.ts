@@ -12,7 +12,7 @@ export type BattlePhase =
   | 'defeat'
 
 export interface EnemyCombatant {
-  kind: 'enemy' | 'boss'
+  kind: 'enemy' | 'boss' | 'mimic'
   name: string
   imageCategory: AssetCategory
   imageKey: string
@@ -38,6 +38,25 @@ export interface TimerState {
   running: boolean
 }
 
+/**
+ * One enemy attack, which may demand several defense prompts in sequence.
+ * Damage scales with how many were answered correctly — see
+ * battleEngine.defenseDamage(). A fully-correct defense still lets a
+ * sliver through (battleBalance.defendedDamageFraction), which is the
+ * partial-defense behavior the game already had for single prompts.
+ */
+export interface DefenseSequence {
+  challenges: Challenge[]
+  /** Index of the prompt currently being answered. */
+  index: number
+  /** One entry per answered prompt, in order. */
+  results: boolean[]
+}
+
+export function defenseSequenceComplete(seq: DefenseSequence): boolean {
+  return seq.index >= seq.challenges.length
+}
+
 export interface BattleState {
   enemy: EnemyCombatant
   isBoss: boolean
@@ -46,11 +65,15 @@ export interface BattleState {
   deck: DeckState
   phase: BattlePhase
   activeChallenge: Challenge | null
+  /** Non-null while an enemy attack is being defended against. */
+  defense: DefenseSequence | null
   timer: TimerState | null
   log: string[]
   totemDamageTakenThisBattle: number
   /** Result of the most recently resolved challenge, for UI feedback styling. */
   lastResult: 'correct' | 'incorrect' | null
+  /** Guard so a victory's rewards can only ever be granted once. */
+  rewardsGranted: boolean
 }
 
 export function isPlateauCleared(plateau: PlateauRequirement[] | null): boolean {

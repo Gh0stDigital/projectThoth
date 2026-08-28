@@ -1,23 +1,43 @@
 import type { Spell } from '@/domain/spell'
 import type {
+  ActiveModifier,
+  DirectionChoice,
   DungeonConfig,
   DungeonEvent,
   DungeonRunState,
-  RoomKind,
+  DungeonState,
+  RewardBundle,
 } from '@/domain/dungeon'
-import { createEmptyRunStats } from '@/domain/dungeon'
+import { allWordsIntroduced, createEmptyRunStats } from '@/domain/dungeon'
 import type { DungeonTierDef } from '@/config/balance'
-import { rewardBalance, battleBalance, spellBalance } from '@/config/balance'
-import { pickNextEventType } from './eventGenerator'
-import { eventDefinitions, bossRoomDefinition } from './eventContent'
-import { generateChallenge, resolveChallenge, type ChallengeResolution } from './challengeEngine'
-import { moneyReward } from './spellProgression'
+import { spellBalance } from '@/config/balance'
+import {
+  fourWayDirectionChance,
+  fourWayDirections,
+  twoWayDirections,
+  type DungeonEventType,
+} from '@/config/dungeonEvents'
+import { rollEvent } from './eventGenerator'
+import { eventDefinitions } from './eventContent'
+import { generateChallenge } from './challengeEngine'
+import { tickModifiers, addModifier as addModifierTo } from './directionModifiers'
+import { initWordStats, markIntroduced, recordAttempt, type AttemptKind } from './wordStats'
+import { transition } from './dungeonState'
 import { makeId } from './idGen'
 
 /**
+ * Dungeon run orchestration — pure state transforms over DungeonRunState.
+ *
+ * Every function here returns a new run object and performs no side
+ * effects: no store writes, no persistence, no randomness except via an
+ * injected rng. The store applies the results and handles anything that
+ * touches the outside world (Totem HP, inventory, the Compendium).
+ */
+
+/**
  * Builds a DungeonConfig, capping the resolved word pool to the tier's
- * word limit. If the chosen Dungeon Spell Set has more words than the
- * tier allows, a random subset is used.
+ * word limit. If the chosen Dungeon Spell Set has more words than the tier
+ * allows, a random subset is used.
  */
 export function buildDungeonConfig(
   totemId: string,
@@ -29,8 +49,7 @@ export function buildDungeonConfig(
 ): DungeonConfig {
   let pool = [...dungeonSpellSetWordIds]
   if (pool.length > tier.wordLimit) {
-    // Fisher-Yates partial shuffle down to the limit.
-    for (let i = pool.length - 1; i > pool.length - 1 - tier.wordLimit && i > 0; i--) {
+    for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(rng() * (i + 1))
       ;[pool[i], pool[j]] = [pool[j], pool[i]]
     }
@@ -42,10 +61,6 @@ export function buildDungeonConfig(
     dungeonSpellSetId,
     tierId: tier.id,
     dungeonWordIds: pool,
-    // Always the single default location backdrop for now — kept as a
-    // config field (rather than a hardcoded constant in the UI) so a
-    // per-tier or randomized location can be swapped in later without
-    // touching the screens that render it.
     locationKey: 'default',
   }
 }
@@ -53,54 +68,77 @@ export function buildDungeonConfig(
 export function startDungeon(config: DungeonConfig): DungeonRunState {
   return {
     config,
-    challengedWordIds: [],
+    // A run opens in Standby: the first event is only rolled once the
+    // player chooses to Move.
+    state: 'Standby',
+    turn: 0,
+    wordStats: initWordStats(config.dungeonWordIds),
     eventHistory: [],
-    bossUnlocked: false,
-    bossRoomAnnounced: false,
+    modifiers: [],
+    keyFound: false,
+    keyUsed: false,
+    bossDoorFound: false,
+    keyRoomUnlocked: false,
+    keyRoomSeen: false,
+    keyRoomPressure: 0,
+    restAreaFound: false,
+    restUses: 0,
     currentEvent: null,
-    // A run opens in the entrance room, where the player chooses an action
-    // rather than being dropped straight into a generated event.
-    phase: 'room',
-    roomKind: 'entrance',
-    roomNotice: null,
+    eventTimer: null,
+    pendingReward: null,
     lastOutcomeText: [],
+    standbyNotice: null,
     stats: createEmptyRunStats(),
     startedAt: new Date().toISOString(),
   }
 }
 
-/**
- * Returns the player to a room between events. `notice` surfaces a
- * one-line result (an item used, a drop found) in the room itself.
- */
-export function enterRoom(
-  run: DungeonRunState,
-  kind: RoomKind = 'intermission',
-  notice: string | null = null,
-): DungeonRunState {
-  return { ...run, phase: 'room', roomKind: kind, roomNotice: notice, currentEvent: null }
+/** Moves the run to a new state, ignoring the change if it isn't legal. */
+export function setState(run: DungeonRunState, next: DungeonState): DungeonRunState {
+  return { ...run, state: transition(run.state, next) }
 }
 
-export function setRoomNotice(run: DungeonRunState, notice: string | null): DungeonRunState {
-  return { ...run, roomNotice: notice }
+/** Returns the player to Standby, optionally with a one-line notice. */
+export function toStandby(run: DungeonRunState, notice: string | null = null): DungeonRunState {
+  return {
+    ...run,
+    state: transition(run.state, 'Standby'),
+    currentEvent: null,
+    eventTimer: null,
+    pendingReward: null,
+    standbyNotice: notice,
+    lastOutcomeText: [],
+  }
 }
+
+export function setStandbyNotice(run: DungeonRunState, notice: string | null): DungeonRunState {
+  return { ...run, standbyNotice: notice }
+}
+
+// ---------------------------------------------------------------------------
+// Movement + event generation
+// ---------------------------------------------------------------------------
 
 function pickRandomSpell(spells: Spell[], rng: () => number): Spell {
   return spells[Math.floor(rng() * spells.length)]
 }
 
-/** True once every word in the Dungeon Spell Set pool has been challenged. */
-export function allWordsChallenged(run: DungeonRunState): boolean {
-  const pool = new Set(run.config.dungeonWordIds)
-  return [...pool].every((id) => run.challengedWordIds.includes(id))
-}
-
-export function markWordChallenged(run: DungeonRunState, spellId: string): DungeonRunState {
-  if (run.challengedWordIds.includes(spellId)) return run
-  const challengedWordIds = [...run.challengedWordIds, spellId]
-  const bossUnlocked =
-    run.bossUnlocked || run.config.dungeonWordIds.every((id) => challengedWordIds.includes(id))
-  return { ...run, challengedWordIds, bossUnlocked }
+function buildDirectionChoices(rng: () => number): DirectionChoice[] {
+  const source = rng() < fourWayDirectionChance ? fourWayDirections : twoWayDirections
+  // Shuffle so left/right (or the four slots) aren't in a fixed order; the
+  // player still gets each path's thematic clue, never a raw probability.
+  const shuffled = [...source]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled.map((d) => ({
+    id: d.id,
+    label: d.label,
+    flavor: d.flavor,
+    weightDeltas: d.weightDeltas,
+    durationMoves: d.durationMoves,
+  }))
 }
 
 export interface NextEventResult {
@@ -109,36 +147,35 @@ export interface NextEventResult {
 }
 
 /**
- * Generates the next dungeon event. If the boss has just unlocked and
- * hasn't been announced yet, the boss-room-discovery event takes priority
- * over the normal weighted roll.
+ * Advances the turn, rolls one event under the active modifiers, and ticks
+ * those modifiers down. The run lands in ResolvingEvent; nothing about the
+ * event's *outcome* is decided here.
  */
 export function generateNextEvent(
   run: DungeonRunState,
   dungeonSpells: Spell[],
   rng: () => number = Math.random,
 ): NextEventResult {
-  if (run.bossUnlocked && !run.bossRoomAnnounced) {
-    const event: DungeonEvent = {
-      id: makeId('evt'),
-      type: bossRoomDefinition.type,
-      title: bossRoomDefinition.title,
-      bodyText: bossRoomDefinition.bodyText,
-      imageCategory: bossRoomDefinition.imageCategory,
-      imageKey: bossRoomDefinition.imageKey,
-      challenge: null,
-      actions: bossRoomDefinition.actions,
-    }
-    return {
-      run: { ...run, currentEvent: event, phase: 'event', roomNotice: null, bossRoomAnnounced: true },
-      event,
-    }
-  }
+  const roll = rollEvent(
+    {
+      history: run.eventHistory,
+      modifiers: run.modifiers,
+      bossDoorFound: run.bossDoorFound,
+      keyRoomSeen: run.keyRoomSeen,
+      keyRoomUnlocked: run.keyRoomUnlocked,
+      keyRoomPressure: run.keyRoomPressure,
+    },
+    rng,
+  )
 
-  const type = pickNextEventType(run.eventHistory, rng)
+  const type = roll.type
   const def = eventDefinitions[type]
-  const spell = dungeonSpells.length > 0 ? pickRandomSpell(dungeonSpells, rng) : null
-  const challenge = def.hasChallenge && spell ? generateChallenge(spell, def.challengeContext) : null
+  const spell = def.hasChallenge && dungeonSpells.length > 0 ? pickRandomSpell(dungeonSpells, rng) : null
+
+  // Treasure asks for the Korean word (attack-style); traps ask for the
+  // English meaning under a timer (defense-style).
+  const direction = type === 'trap' ? 'kor_to_eng' : 'eng_to_kor'
+  const challenge = spell ? generateChallenge(spell, def.challengeContext, direction) : null
 
   const event: DungeonEvent = {
     id: makeId('evt'),
@@ -148,128 +185,158 @@ export function generateNextEvent(
     imageCategory: def.imageCategory,
     imageKey: def.imageKey,
     challenge,
-    actions: def.actions,
+    directionChoices: type === 'direction' ? buildDirectionChoices(rng) : null,
   }
 
   const run2: DungeonRunState = {
     ...run,
+    state: transition(run.state, 'ResolvingEvent'),
+    turn: run.turn + 1,
     currentEvent: event,
-    phase: 'event',
-    roomNotice: null,
+    eventTimer: null,
+    standbyNotice: null,
+    pendingReward: null,
     eventHistory: [...run.eventHistory, type],
-    stats: { ...run.stats, eventsEncountered: run.stats.eventsEncountered + 1 },
+    // Modifiers tick after the roll they influenced, so a 5-move modifier
+    // biases exactly five rolls.
+    modifiers: tickModifiers(run.modifiers),
+    keyRoomSeen: run.keyRoomSeen || type === 'key_room',
+    keyRoomPressure: roll.nextKeyRoomPressure,
+    bossDoorFound: run.bossDoorFound || type === 'boss_door',
+    restAreaFound: run.restAreaFound || type === 'rest',
+    stats: {
+      ...run.stats,
+      turns: run.turn + 1,
+      eventsEncountered: run.stats.eventsEncountered + 1,
+    },
   }
 
   return { run: run2, event }
 }
 
-export interface RewardOutcome {
-  moneyDelta: number
-  healFraction: number
-  damageToTotem: number
-  resultText: string
-}
+// ---------------------------------------------------------------------------
+// Run bookkeeping
+// ---------------------------------------------------------------------------
 
-/** Resolves a non-challenge, non-monster event (empty/branch/rest). */
-export function resolveSafeEvent(run: DungeonRunState, event: DungeonEvent): { run: DungeonRunState; reward: RewardOutcome } {
-  const reward: RewardOutcome =
-    event.type === 'rest'
-      ? { moneyDelta: 0, healFraction: 0.15, damageToTotem: 0, resultText: 'You rest and recover a little strength.' }
-      : { moneyDelta: 0, healFraction: 0, damageToTotem: 0, resultText: 'Nothing more happens here.' }
-  return { run: { ...run, phase: 'resolution' }, reward }
-}
-
-export interface ChallengeEventOutcome {
-  run: DungeonRunState
-  resolution: ChallengeResolution
-  reward: RewardOutcome
-}
-
-/** Resolves an event that required a vocabulary challenge (trap/treasure/shrine/discovery/special). */
-export function resolveChallengeEvent(
+/**
+ * Records one completed vocabulary prompt against the run: per-word stats,
+ * aggregate accuracy, and the Key Room unlock (which fires as soon as every
+ * pool word has been introduced).
+ */
+export function recordWordAttempt(
   run: DungeonRunState,
-  tier: DungeonTierDef,
-  event: DungeonEvent,
-  spell: Spell,
-  submitted: string,
-): ChallengeEventOutcome {
-  const challenge = event.challenge!
-  const resolution = resolveChallenge(spell, challenge, submitted, 'challenge')
-
-  let reward: RewardOutcome
-  const base = rewardBalance.baseMoney
-  switch (event.type) {
-    case 'trap':
-      reward = resolution.correct
-        ? { moneyDelta: 0, healFraction: 0, damageToTotem: 0, resultText: 'You disarm the trap safely.' }
-        : {
-            moneyDelta: 0,
-            healFraction: 0,
-            damageToTotem: Math.round(battleBalance.baseEnemyDamage * 0.8 * tier.enemyDamageMultiplier),
-            resultText: 'The trap triggers! You take damage.',
-          }
-      break
-    case 'treasure':
-      reward = resolution.correct
-        ? { moneyDelta: moneyReward(resolution.spell, base), healFraction: 0, damageToTotem: 0, resultText: 'The lock clicks open — treasure claimed!' }
-        : { moneyDelta: 0, healFraction: 0, damageToTotem: 0, resultText: 'The lock holds fast. The chest stays shut.' }
-      break
-    case 'shrine':
-      reward = resolution.correct
-        ? { moneyDelta: 0, healFraction: 0.25, damageToTotem: 0, resultText: 'Warmth flows through you — HP restored.' }
-        : { moneyDelta: 0, healFraction: 0, damageToTotem: 0, resultText: 'The shrine stays silent.' }
-      break
-    case 'discovery':
-      reward = resolution.correct
-        ? { moneyDelta: moneyReward(resolution.spell, base * 0.6), healFraction: 0, damageToTotem: 0, resultText: 'You pocket a small find.' }
-        : { moneyDelta: Math.round(base * rewardBalance.partialRewardFraction * 0.6), healFraction: 0, damageToTotem: 0, resultText: 'You find only scraps.' }
-      break
-    case 'special':
-    default:
-      reward = resolution.correct
-        ? { moneyDelta: moneyReward(resolution.spell, base * 1.3), healFraction: 0, damageToTotem: 0, resultText: 'The strange energy rewards your correct recall!' }
-        : { moneyDelta: Math.round(base * rewardBalance.partialRewardFraction), healFraction: 0, damageToTotem: 0, resultText: 'The moment passes, mostly wasted.' }
-      break
-  }
-
-  let run2 = markWordChallenged(run, spell.id)
-  run2 = {
-    ...run2,
-    phase: 'resolution',
+  spellId: string,
+  kind: AttemptKind,
+  correct: boolean,
+): DungeonRunState {
+  const wordStats = recordAttempt(run.wordStats, spellId, kind, correct)
+  const next: DungeonRunState = {
+    ...run,
+    wordStats,
     stats: {
-      ...run2.stats,
-      correctAnswers: run2.stats.correctAnswers + (resolution.correct ? 1 : 0),
-      incorrectAnswers: run2.stats.incorrectAnswers + (resolution.correct ? 0 : 1),
-      spellXpEarned: run2.stats.spellXpEarned + resolution.xpGained,
-      moneyEarned: run2.stats.moneyEarned + reward.moneyDelta,
-      treasureCollected: run2.stats.treasureCollected + (event.type === 'treasure' && resolution.correct ? 1 : 0),
+      ...run.stats,
+      correctAnswers: run.stats.correctAnswers + (correct ? 1 : 0),
+      incorrectAnswers: run.stats.incorrectAnswers + (correct ? 0 : 1),
+      attackCorrect: run.stats.attackCorrect + (kind === 'attack' && correct ? 1 : 0),
+      attackTotal: run.stats.attackTotal + (kind === 'attack' ? 1 : 0),
+      defenseCorrect: run.stats.defenseCorrect + (kind === 'defense' && correct ? 1 : 0),
+      defenseTotal: run.stats.defenseTotal + (kind === 'defense' ? 1 : 0),
     },
   }
-
-  return { run: run2, resolution, reward }
+  return refreshKeyRoomUnlock(next)
 }
 
-export function recordMonsterDefeated(run: DungeonRunState): DungeonRunState {
-  return { ...run, stats: { ...run.stats, monstersDefeated: run.stats.monstersDefeated + 1 } }
+/** Marks a word seen without an attempt (the Magic Room's puzzle word). */
+export function markWordIntroduced(run: DungeonRunState, spellId: string): DungeonRunState {
+  return refreshKeyRoomUnlock({ ...run, wordStats: markIntroduced(run.wordStats, spellId) })
 }
 
-export function recordBossDefeated(run: DungeonRunState): DungeonRunState {
-  return { ...run, stats: { ...run.stats, bossDefeated: true, floorCompleted: true } }
+function refreshKeyRoomUnlock(run: DungeonRunState): DungeonRunState {
+  if (run.keyRoomUnlocked) return run
+  if (!allWordsIntroduced(run)) return run
+  return { ...run, keyRoomUnlocked: true }
+}
+
+export function applyDirectionChoice(run: DungeonRunState, choice: DirectionChoice): DungeonRunState {
+  return { ...run, modifiers: addModifierTo(run.modifiers, choice) }
+}
+
+export function activeModifiers(run: DungeonRunState): ActiveModifier[] {
+  return run.modifiers
+}
+
+export function grantKey(run: DungeonRunState): DungeonRunState {
+  // Guarded so a re-render or double-tap can never mint a second key.
+  if (run.keyFound) return run
+  return { ...run, keyFound: true }
+}
+
+export function consumeKey(run: DungeonRunState): DungeonRunState {
+  return { ...run, keyUsed: true }
+}
+
+/** The boss is enterable only once its door is found and the key is in hand. */
+export function canEnterBoss(run: DungeonRunState): boolean {
+  return run.bossDoorFound && run.keyFound && !run.keyUsed
+}
+
+export function recordRestUsed(run: DungeonRunState, spent: number): DungeonRunState {
+  return {
+    ...run,
+    restUses: run.restUses + 1,
+    stats: { ...run.stats, restsUsed: run.stats.restsUsed + 1, moneyEarned: run.stats.moneyEarned - spent },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rewards + results
+// ---------------------------------------------------------------------------
+
+/**
+ * Folds a reward bundle into the run's totals and parks it as
+ * `pendingReward` for the UI to display. The store is responsible for
+ * actually crediting the Totem/inventory — and does so exactly once,
+ * at the same moment this is called.
+ */
+export function applyRewardBundle(run: DungeonRunState, reward: RewardBundle): DungeonRunState {
+  return {
+    ...run,
+    pendingReward: reward,
+    stats: {
+      ...run.stats,
+      moneyEarned: run.stats.moneyEarned + reward.money,
+      totemXpEarned: run.stats.totemXpEarned + reward.totemXp,
+      itemsCollected: [...run.stats.itemsCollected, ...reward.itemIds],
+      treasureCollected: run.stats.treasureCollected + (reward.money > 0 ? 1 : 0),
+    },
+  }
 }
 
 export function addSpellXp(run: DungeonRunState, amount: number): DungeonRunState {
   return { ...run, stats: { ...run.stats, spellXpEarned: run.stats.spellXpEarned + amount } }
 }
 
-export function addTotemXp(run: DungeonRunState, amount: number): DungeonRunState {
-  return { ...run, stats: { ...run.stats, totemXpEarned: run.stats.totemXpEarned + amount } }
+export function recordEnemyDefeated(run: DungeonRunState, wasMimic: boolean): DungeonRunState {
+  return {
+    ...run,
+    stats: {
+      ...run.stats,
+      enemiesDefeated: run.stats.enemiesDefeated + 1,
+      mimicsDefeated: run.stats.mimicsDefeated + (wasMimic ? 1 : 0),
+    },
+  }
 }
 
-export function addMoneyEarned(run: DungeonRunState, amount: number): DungeonRunState {
-  return { ...run, stats: { ...run.stats, moneyEarned: run.stats.moneyEarned + amount } }
+export function recordBossDefeated(run: DungeonRunState): DungeonRunState {
+  return { ...run, stats: { ...run.stats, bossDefeated: true } }
 }
 
-export function recordLevelUp(run: DungeonRunState, spellId: string, from: number, to: number): DungeonRunState {
+export function recordLevelUp(
+  run: DungeonRunState,
+  spellId: string,
+  from: number,
+  to: number,
+): DungeonRunState {
   if (to <= from) return run
   const crossedMastery = from < spellBalance.masteryLevel && to >= spellBalance.masteryLevel
   return {
@@ -285,13 +352,32 @@ export function recordLevelUp(run: DungeonRunState, spellId: string, from: numbe
   }
 }
 
-export function recordCorrect(run: DungeonRunState, correct: boolean): DungeonRunState {
+export function setOutcomeText(run: DungeonRunState, lines: string[]): DungeonRunState {
+  return { ...run, lastOutcomeText: lines }
+}
+
+export type { DungeonEventType }
+
+// ---------------------------------------------------------------------------
+// Timed event prompts (traps)
+// ---------------------------------------------------------------------------
+
+/** Starts the countdown for a timed prompt, replacing any previous one. */
+export function startEventTimer(run: DungeonRunState, seconds: number): DungeonRunState {
+  return { ...run, eventTimer: { totalSeconds: seconds, remainingSeconds: seconds, running: true } }
+}
+
+export function tickEventTimer(run: DungeonRunState, deltaSeconds: number): DungeonRunState {
+  if (!run.eventTimer || !run.eventTimer.running) return run
   return {
     ...run,
-    stats: {
-      ...run.stats,
-      correctAnswers: run.stats.correctAnswers + (correct ? 1 : 0),
-      incorrectAnswers: run.stats.incorrectAnswers + (correct ? 0 : 1),
+    eventTimer: {
+      ...run.eventTimer,
+      remainingSeconds: Math.max(0, run.eventTimer.remainingSeconds - deltaSeconds),
     },
   }
+}
+
+export function clearEventTimer(run: DungeonRunState): DungeonRunState {
+  return { ...run, eventTimer: null }
 }

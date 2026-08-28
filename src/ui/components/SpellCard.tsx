@@ -8,15 +8,25 @@ interface SpellCardProps {
   spell: Spell
   selected?: boolean
   disabled?: boolean
+  /**
+   * Masked hint built from the English meaning (Courage -> C_____E). The
+   * full English is deliberately never rendered on a card front — that
+   * would hand the player the answer they're about to be asked for.
+   */
+  clue?: string
+  /** Boss-barrier state for this word, when a barrier is up. */
+  barrierCleared?: boolean
   onClick?: () => void
 }
 
 /** A single battle-hand Spell card: word, level, charge, potential damage. */
-export function SpellCard({ spell, selected, disabled, onClick }: SpellCardProps) {
+export function SpellCard({ spell, selected, disabled, clue, barrierCleared, onClick }: SpellCardProps) {
   const artKey = pickFlavor('spells', spell.id).split('/').pop()!.replace('.png', '')
   return (
     <div
-      className={`spell-card${selected ? ' selected' : ''}${disabled ? ' disabled' : ''}`}
+      className={`spell-card${selected ? ' selected' : ''}${disabled ? ' disabled' : ''}${
+        barrierCleared === true ? ' barrier-cleared' : barrierCleared === false ? ' barrier-pending' : ''
+      }`}
       onClick={disabled ? undefined : onClick}
       role="button"
       tabIndex={disabled ? -1 : 0}
@@ -25,6 +35,12 @@ export function SpellCard({ spell, selected, disabled, onClick }: SpellCardProps
         <AssetImage category="spells" assetKey={artKey} alt={spell.korean} />
       </div>
       <div className="word">{spell.korean}</div>
+      {clue && <div className="card-clue">{clue}</div>}
+      {barrierCleared !== undefined && (
+        <div className={`card-barrier ${barrierCleared ? 'done' : 'pending'}`}>
+          {barrierCleared ? '🛡️ cleared' : '🛡️ needed'}
+        </div>
+      )}
       <div className="meta">
         <span>Lv {spell.level}</span>
         <span>{damageForSpell(spell)} dmg</span>

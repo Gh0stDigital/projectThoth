@@ -19,7 +19,8 @@ import {
   deleteSpellSet,
   pruneSpellFromAllSets,
 } from '@/systems/spellSetManager'
-import { createTotem, equipSpellSet } from '@/systems/totemManager'
+import { createTotem, equipSpellSet, isUsable } from '@/systems/totemManager'
+import { totemBalance } from '@/config/balance'
 
 export interface DungeonSelectionDraft {
   totemSpellSetId: string | null
@@ -68,6 +69,12 @@ function loadInitial(): PersistedData {
     totems: (saved.totems && saved.totems.length > 0 ? saved.totems : defaults.totems).map((t) => ({
       ...t,
       avatarKey: 'default',
+      // Life Points were added after some saves were written — give older
+      // Totems a full set rather than a destroyed one.
+      lifePoints: t.lifePoints ?? totemBalance.startingLifePoints,
+      maxLifePoints: t.maxLifePoints ?? totemBalance.startingLifePoints,
+      destroyed: t.destroyed ?? false,
+      stats: { ...t.stats, dungeonsFailed: t.stats?.dungeonsFailed ?? 0 },
     })),
     activeTotemId: saved.activeTotemId ?? defaults.activeTotemId,
     settings: { ...defaults.settings, ...saved.settings },
@@ -91,6 +98,8 @@ export interface PersistentStore extends PersistedData {
   deleteSpellSet(id: string): void
 
   createTotem(name: string): Totem
+  /** Totems that can still enter a dungeon (not destroyed). */
+  usableTotems(): Totem[]
   setActiveTotem(id: string): void
   equipTotemSpellSet(totemId: string, spellSetId: string | null): void
   replaceTotem(id: string, updater: (t: Totem) => Totem): void
@@ -164,10 +173,18 @@ export const usePersistentStore = create<PersistentStore>()((set, get) => ({
 
   createTotem(name) {
     const totem = createTotem(name)
-    set((state) => ({ totems: [...state.totems, totem] }))
+    // A newly raised Totem becomes the active one — otherwise a player
+    // whose only Totem was destroyed would still have no one to play as.
+    set((state) => ({ totems: [...state.totems, totem], activeTotemId: totem.id }))
     return totem
   },
+  usableTotems() {
+    return get().totems.filter(isUsable)
+  },
   setActiveTotem(id) {
+    // A destroyed Totem can never be selected again.
+    const target = get().totems.find((t) => t.id === id)
+    if (!target || !isUsable(target)) return
     set({ activeTotemId: id })
   },
   equipTotemSpellSet(totemId, spellSetId) {

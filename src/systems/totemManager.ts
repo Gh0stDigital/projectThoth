@@ -16,10 +16,14 @@ export function createTotem(name: string): Totem {
     currentHp: totemBalance.maxHp(level),
     maxHp: totemBalance.maxHp(level),
     money: 0,
+    lifePoints: totemBalance.startingLifePoints,
+    maxLifePoints: totemBalance.startingLifePoints,
+    destroyed: false,
     equippedSpellSetId: null,
     stats: {
       dungeonsCompleted: 0,
       bossesDefeated: 0,
+      dungeonsFailed: 0,
       totalDamageDealt: 0,
       totalDamageTaken: 0,
     },
@@ -84,4 +88,52 @@ export function fullyRestore(totem: Totem): Totem {
 
 export function recordDamageDealt(totem: Totem, amount: number): Totem {
   return { ...totem, stats: { ...totem.stats, totalDamageDealt: totem.stats.totalDamageDealt + Math.max(0, amount) } }
+}
+
+// ---------------------------------------------------------------------------
+// Life Points
+// ---------------------------------------------------------------------------
+
+export interface LifeLossResult {
+  totem: Totem
+  /** False when no Life Point was actually deducted (already at 0). */
+  lifePointLost: boolean
+  /** True only on the transition into permanent destruction. */
+  becameDestroyed: boolean
+}
+
+/**
+ * Applies a dungeon defeat: exactly one Life Point, never more, and never
+ * from a totem that has already run out. At 0 the Totem is permanently
+ * destroyed. HP is restored to full so a surviving Totem isn't left stuck
+ * at 0 HP and unable to enter another dungeon.
+ */
+export function loseLifePoint(totem: Totem): LifeLossResult {
+  if (totem.destroyed || totem.lifePoints <= 0) {
+    return { totem: { ...totem, destroyed: true, lifePoints: 0 }, lifePointLost: false, becameDestroyed: false }
+  }
+  const lifePoints = totem.lifePoints - 1
+  const destroyed = lifePoints <= 0
+  return {
+    totem: {
+      ...totem,
+      lifePoints,
+      destroyed,
+      // A destroyed Totem stays at 0 HP as a memorial; a surviving one is
+      // patched up so the next run can actually begin.
+      currentHp: destroyed ? 0 : totem.maxHp,
+      stats: { ...totem.stats, dungeonsFailed: totem.stats.dungeonsFailed + 1 },
+    },
+    lifePointLost: true,
+    becameDestroyed: destroyed,
+  }
+}
+
+/** A Totem that can still be taken into a dungeon. */
+export function isUsable(totem: Totem): boolean {
+  return !totem.destroyed && totem.lifePoints > 0
+}
+
+export function spendMoney(totem: Totem, amount: number): Totem {
+  return { ...totem, money: Math.max(0, totem.money - Math.max(0, Math.round(amount))) }
 }

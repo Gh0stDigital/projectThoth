@@ -151,6 +151,13 @@ textarea {
   touch-action: pan-y;
 }
 
+/* A scrolling screen must not also squeeze its children: the screen is a
+   flex column, so panels would otherwise shrink to fit and clip their own
+   content instead of extending the scroll area. */
+.screen-scroll > * {
+  flex-shrink: 0;
+}
+
 /* ---- Typography ---- */
 
 h1,
@@ -2276,4 +2283,425 @@ select:focus {
 
 .challenge-prompt {
   flex-shrink: 0;
+}
+
+/* ===========================================================================
+   Dragon King dungeon loop — run HUD, events, Hangman, rest, results
+   =========================================================================== */
+
+/* ---- Always-on run readout ---- */
+
+.run-hud {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 7px 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-soft);
+  border-left: 2px solid var(--accent-cyan-dim);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.run-hud-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.run-hud-row.secondary {
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 11px;
+}
+
+.run-hud-mode {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-cyan);
+  font-size: 11px;
+}
+
+.run-hud-turn {
+  color: var(--text-secondary);
+}
+
+.run-hud-life {
+  margin-left: auto;
+  color: var(--accent-gold);
+  letter-spacing: 1px;
+}
+
+.run-hud-money {
+  color: var(--text-secondary);
+}
+
+.run-hud-chip {
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-panel-raised);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.run-hud-chip.on {
+  border-color: var(--accent-gold-dim);
+  color: var(--accent-gold);
+}
+
+.run-hud-chip.off {
+  color: var(--text-faint);
+}
+
+.run-hud-chip.mod {
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+}
+
+/* ---- Direction fork ---- */
+
+.direction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.direction-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+  text-align: left;
+  min-height: 56px;
+  padding: 10px 12px;
+  background: linear-gradient(160deg, var(--bg-card), var(--bg-panel-raised));
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--accent-purple);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.direction-card:active {
+  border-left-color: var(--accent-gold);
+}
+
+.direction-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.direction-flavor {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.direction-duration {
+  font-size: 11px;
+}
+
+/* ---- Rewards ---- */
+
+.reward-panel {
+  padding: 10px 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--accent-gold-dim);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 18px -10px var(--glow-gold);
+  flex-shrink: 0;
+}
+
+.reward-title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  margin-bottom: 6px;
+}
+
+.reward-lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reward-line {
+  padding: 3px 9px;
+  font-size: 13px;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+}
+
+/* ---- Magic Room (Hangman) ---- */
+
+.hangman-slots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.hangman-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 48px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  background: var(--bg-deep);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.hangman-slot.filled {
+  border-style: solid;
+  border-color: var(--accent-gold-dim);
+}
+
+.hangman-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.hangman-mistakes {
+  color: var(--accent-red);
+  letter-spacing: 2px;
+}
+
+.hangman-mistakes.danger {
+  animation: pulse-gold 1.2s ease-in-out infinite;
+}
+
+.answer-tile.guess-hit {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+  opacity: 0.85;
+}
+
+.answer-tile.guess-miss {
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+  opacity: 0.5;
+}
+
+/* ---- Rest area ---- */
+
+.rest-area {
+  flex-shrink: 0;
+}
+
+.rest-area h3 {
+  margin-bottom: 4px;
+}
+
+/* ---- Battle: attack-card clue, barrier state, defense volley ---- */
+
+.card-clue {
+  margin-top: 2px;
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--accent-cyan);
+}
+
+.card-barrier {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.card-barrier.pending {
+  color: var(--plateau-color);
+}
+
+.card-barrier.done {
+  color: var(--accent-green);
+}
+
+.spell-card.barrier-pending {
+  border-color: var(--plateau-color);
+}
+
+.spell-card.barrier-cleared {
+  opacity: 0.62;
+}
+
+.defense-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.defense-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.defense-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+}
+
+.defense-dot.active {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 6px -1px var(--glow-cyan);
+}
+
+.defense-dot.hit {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+}
+
+.defense-dot.miss {
+  background: var(--accent-red);
+  border-color: var(--accent-red);
+}
+
+/* ---- Life Points ---- */
+
+.life-points {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 6px 0;
+  font-size: 13px;
+}
+
+.life-pip {
+  color: var(--text-faint);
+  font-size: 16px;
+}
+
+.life-pip.lit {
+  color: var(--accent-gold);
+}
+
+/* ---- Results ---- */
+
+.totem-outcome.destroyed {
+  border-color: var(--accent-red);
+}
+
+.destroyed-note {
+  color: var(--accent-red);
+  font-size: 13px;
+}
+
+.word-report-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 9px;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+}
+
+.word-report-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.word-report-word {
+  font-size: 14px;
+}
+
+.word-report-meta {
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* ---- Answering modes: shed the chrome that isn't load-bearing ----
+
+   The run HUD's second row (key/door/path chips) and the exit row are
+   reference information, not something you act on mid-answer, so they go
+   while a prompt is up. What stays is everything the answer depends on:
+   the enemy, your Totem's HP, the timer and the board itself. Nothing is
+   resized — the surviving windows keep their normal size. */
+.screen[data-challenge='true'] .run-hud-row.secondary,
+.screen[data-challenge='true'] > .row {
+  display: none;
+}
+
+/* A Rest Area is a menu, not a scene — the map track and progress meter
+   don't earn their space there. */
+.screen[data-mode='rest'] .dungeon-track,
+.screen[data-mode='rest'] .progress-meter,
+.screen[data-mode='rest'] .typewriter-box {
+  display: none;
+}
+
+/* The Hangman board is the tallest single panel in the game; trim its
+   slots so a 5-syllable word still fits a short phone. */
+@media (max-height: 720px) {
+  .hangman-slot {
+    min-width: 34px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .hangman-slots {
+    margin: 6px 0;
+  }
+}
+
+/* Standby's secondary destinations (Rest Area, Boss Door) sit side by side
+   rather than stacked, so a fully-explored hub still fits one viewport. */
+.standby-extras {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.standby-extras > .btn {
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+}
+
+/* On a short phone the map track is the most expendable readout — the
+   progress meter below it carries the same count in words. */
+@media (max-height: 720px) {
+  .dungeon-track {
+    display: none;
+  }
+}
+
+/* Confirmation for a one-way door (entering the boss). */
+.confirm-dialog {
+  width: min(340px, calc(100% - 32px));
+  margin: auto;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--accent-red);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 30px -12px var(--accent-red);
+  text-align: center;
+}
+
+.confirm-dialog p {
+  font-size: 13px;
+  line-height: 1.4;
 }
