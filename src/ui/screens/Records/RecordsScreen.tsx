@@ -5,6 +5,8 @@ import { TopBar } from '@/ui/components/TopBar'
 import { Bar } from '@/ui/components/Bar'
 import { spellAccuracy } from '@/domain/spell'
 import { sortSpells, filterSpellsBySet, type RecordsSortKey } from '@/systems/records'
+import { definitionsOf } from '@/domain/spell'
+import { elementDefFor, wordTypeDefs } from '@/config/wordTypes'
 
 const sortOptions: { key: RecordsSortKey; label: string }[] = [
   { key: 'level', label: 'Level' },
@@ -65,9 +67,12 @@ export function RecordsScreen() {
           <div key={spell.id} className="record-row">
             <div className="head">
               <span className="kor">{spell.korean}</span>
+              <span className={`element-chip element-${elementDefFor(spell.wordType).id}`}>
+                {elementDefFor(spell.wordType).icon} {wordTypeDefs[spell.wordType].shortLabel}
+              </span>
               <span className="faint">Lv {spell.level}</span>
             </div>
-            <p className="muted" style={{ fontSize: 13 }}>{spell.english}</p>
+            <p className="muted" style={{ fontSize: 13 }}>{definitionsOf(spell).join(' · ')}</p>
 
             <div className="row">
               <span className="faint" style={{ minWidth: 46 }}>

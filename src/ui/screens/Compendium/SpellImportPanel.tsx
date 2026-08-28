@@ -1,6 +1,13 @@
 import { useMemo, useRef, useState } from 'react'
 import { usePersistentStore } from '@/state/persistentStore'
-import { parseImportText, importRowsToInputs, IMPORT_TEMPLATE_CSV } from '@/systems/spellImport'
+import {
+  parseImportText,
+  importRowsToInputs,
+  exportSpellsToCsv,
+  IMPORT_TEMPLATE_CSV,
+  IMPORT_TEMPLATE_SIMPLE_CSV,
+} from '@/systems/spellImport'
+import { elementDefFor, wordTypeDefs } from '@/config/wordTypes'
 
 /** Saves text as a local file via a throwaway object URL — no network involved. */
 function downloadTextFile(filename: string, content: string, mime: string) {
@@ -93,21 +100,34 @@ export function SpellImportPanel({ onDone, onCancel }: SpellImportPanelProps) {
           placeholder={PLACEHOLDER}
         />
         <p className="faint">
-          One word per line: Korean first, then English — separated by a comma, tab, or pipe. Pasting straight from a
-          spreadsheet works too. An optional third column adds notes, and a header row is detected and skipped
-          automatically.
+          Quick form: one word per line, Korean first then the definition — comma, tab or pipe separated. Pasting
+          straight from a spreadsheet works too. Add a header row (word, word type, definition 1, definition 2,
+          sample sentence, present, past, future…) to fill in the full entry; columns can be in any order. Element is
+          worked out from the Word Type, so an Element column is ignored.
         </p>
       </div>
 
       <div className="btn-row">
         <button
           className="btn btn-ghost btn-sm"
-          onClick={() => downloadTextFile('thoth-spell-import-template.csv', IMPORT_TEMPLATE_CSV, 'text/csv')}
+          onClick={() => downloadTextFile('thoth-vocab-template.csv', IMPORT_TEMPLATE_CSV, 'text/csv')}
         >
-          ⬇️ Download Template
+          ⬇️ Full Template
         </button>
         <button className="btn btn-ghost btn-sm" onClick={() => setText(IMPORT_TEMPLATE_CSV)}>
-          👁️ Preview Template
+          👁️ Preview
+        </button>
+      </div>
+      <div className="btn-row">
+        <button className="btn btn-ghost btn-sm" onClick={() => setText(IMPORT_TEMPLATE_SIMPLE_CSV)}>
+          ✏️ Simple Form
+        </button>
+        <button
+          className="btn btn-ghost btn-sm"
+          disabled={spells.length === 0}
+          onClick={() => downloadTextFile('thoth-vocab-export.csv', exportSpellsToCsv(spells), 'text/csv')}
+        >
+          ⬆️ Export My Words
         </button>
       </div>
       <div className="btn-row">
@@ -138,9 +158,17 @@ export function SpellImportPanel({ onDone, onCancel }: SpellImportPanelProps) {
                 <span className="import-row-line">{row.line}</span>
                 <div className="import-row-body">
                   {row.status === 'ok' ? (
-                    <span>
-                      {row.korean} <span className="faint">— {row.english}</span>
-                    </span>
+                    <>
+                      <span>
+                        {row.korean} <span className="faint">— {row.english}</span>
+                        {row.input.wordType && (
+                          <span className={`element-chip element-${elementDefFor(row.input.wordType).id}`}>
+                            {elementDefFor(row.input.wordType).icon} {wordTypeDefs[row.input.wordType].shortLabel}
+                          </span>
+                        )}
+                      </span>
+                      {row.message && <span className="import-row-message duplicate">{row.message}</span>}
+                    </>
                   ) : (
                     <>
                       <span className="faint">{row.raw}</span>

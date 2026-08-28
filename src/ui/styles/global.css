@@ -29,6 +29,14 @@
   --glow-cyan: rgba(79, 227, 240, 0.35);
   --glow-gold: rgba(242, 193, 78, 0.3);
 
+  /* Element accents — one per word type (see config/wordTypes.ts). */
+  --element-earth: #c9a227;
+  --element-fire: #e0654f;
+  --element-water: #5fa8e0;
+  --element-wind: #8fd6b4;
+  --element-lightning: #a58bd8;
+  --element-metal: #9aa6bf;
+
   --hp-color: #e0654f;
   --charge-color: #f2c14e;
   --xp-color: #5fa8e0;
@@ -2765,4 +2773,88 @@ select:focus {
     height: 32px;
     width: 30px;
   }
+}
+
+/* ===========================================================================
+   Vocabulary: word types and elements
+   =========================================================================== */
+
+/* One rule per element rather than six near-identical blocks: each sets the
+   local accent, and everything below paints from that. */
+.element-earth { --element: var(--element-earth); }
+.element-fire { --element: var(--element-fire); }
+.element-water { --element: var(--element-water); }
+.element-wind { --element: var(--element-wind); }
+.element-lightning { --element: var(--element-lightning); }
+.element-metal { --element: var(--element-metal); }
+
+/* Compact badge used in lists, records and import previews. */
+.element-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  vertical-align: middle;
+  border-radius: 999px;
+  border: 1px solid var(--element, var(--border-soft));
+  color: var(--element, var(--text-secondary));
+  background: color-mix(in srgb, var(--element, transparent) 12%, transparent);
+}
+
+/* The editor's read-only Element readout — shows what the Word Type chose. */
+.element-readout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--element, var(--border-soft));
+  background: color-mix(in srgb, var(--element, transparent) 8%, var(--bg-panel));
+  flex-shrink: 0;
+}
+
+.element-readout .element-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.element-readout .element-name {
+  font-weight: 700;
+  color: var(--element, var(--text-primary));
+}
+
+/* Conjugation fields appear and disappear with the word type, so they get a
+   frame that makes clear they belong together. */
+.conjugation-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-soft);
+  border-left: 2px solid var(--accent-cyan-dim);
+  background: var(--bg-panel);
+  flex-shrink: 0;
+}
+
+.conjugation-head {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-cyan);
+}
+
+/* A battle card is tinted by its element. */
+.spell-card[class*='element-'] {
+  border-color: color-mix(in srgb, var(--element, var(--border-soft)) 55%, var(--border-soft));
+}
+
+.spell-editor .field .faint {
+  font-size: 11px;
+  line-height: 1.35;
 }
