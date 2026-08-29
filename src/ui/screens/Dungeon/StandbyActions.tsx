@@ -52,7 +52,6 @@ export function StandbyActions({
     <>
       <div className="room-actions">
         <button className="room-action primary" onClick={handleMove}>
-          <span className="icon">🚶</span>
           <span className="label">
             Move{hasDestinations && <span className="room-action-caret">▾</span>}
           </span>
@@ -61,17 +60,14 @@ export function StandbyActions({
           </span>
         </button>
         <button className="room-action" onClick={onCheckTotem}>
-          <span className="icon">🛡️</span>
           <span className="label">Totem</span>
           <span className="sub">Inspect your Totem</span>
         </button>
         <button className="room-action" onClick={onCheckWords}>
-          <span className="icon">📖</span>
           <span className="label">Tendency</span>
           <span className="sub">Review this run's Spellwords</span>
         </button>
         <button className="room-action" onClick={onUseItem}>
-          <span className="icon">🎒</span>
           <span className="label">Items</span>
           <span className="sub">Heal, recharge, or leave the dungeon</span>
         </button>
@@ -89,7 +85,6 @@ export function StandbyActions({
                 onMove()
               }}
             >
-              <span className="icon">🚶</span>
               <span className="label">Press onward</span>
               <span className="sub">Roll for whatever lies ahead</span>
             </button>
@@ -102,7 +97,6 @@ export function StandbyActions({
                   onReturnToRest()
                 }}
               >
-                <span className="icon">⛺</span>
                 <span className="label">Rest Area</span>
                 <span className="sub">Bind your wounds, for a price</span>
               </button>
@@ -117,7 +111,6 @@ export function StandbyActions({
                   onEnterBoss()
                 }}
               >
-                <span className="icon">{canEnterBoss ? '⚔️' : '🔒'}</span>
                 <span className="label">Boss Door</span>
                 <span className="sub">
                   {canEnterBoss ? 'The key turns. There is no way back.' : keyFound ? 'The key is spent' : 'Locked — find the key'}
