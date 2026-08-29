@@ -124,19 +124,16 @@ export function beginPlayerChallenge(state: BattleState, spell: Spell): BattleSt
 }
 
 /**
- * The masked clue shown on an attack card: first and last letter in caps,
- * everything between hidden. Answers too short to mask meaningfully (three
- * characters or fewer) fall back to first-letter-only, so a two-letter word
- * can never render as its own answer.
+ * The clue shown on an attack card: the first and last letter of the
+ * English meaning, capitalised — "Anxiety" becomes "AY". Just enough to
+ * tell the cards apart without handing over the answer the player is
+ * about to be asked to produce.
  */
 export function attackCardClue(english: string): string {
-  const word = english.trim()
-  if (word.length === 0) return '???'
-  const first = word.split(/\s+/)[0]
-  if (first.length <= 3) return `${first[0].toUpperCase()}${'_'.repeat(Math.max(2, first.length - 1))}`
-  const head = first[0].toUpperCase()
-  const tail = first[first.length - 1].toUpperCase()
-  return `${head}${'_'.repeat(first.length - 2)}${tail}`
+  const first = english.trim().split(/\s+/)[0] ?? ''
+  if (first.length === 0) return '??'
+  if (first.length === 1) return first.toUpperCase()
+  return `${first[0]}${first[first.length - 1]}`.toUpperCase()
 }
 
 export interface AttackOutcome {

@@ -33,11 +33,23 @@ export const itemDefs: Record<ItemId, ItemDef> = {
     effect: { kind: 'charge', amount: 2 },
     dropWeight: 3,
   },
+  escape_rope: {
+    id: 'escape_rope',
+    name: 'Escape Rope',
+    icon: '🪢',
+    description: 'Leave the dungeon at once. Your run ends and you keep everything you found.',
+    effect: { kind: 'escape' },
+    // Never a random drop — the player always starts a run able to walk out.
+    dropWeight: 0,
+  },
 }
 
 export const itemBalance = {
   /** What the player starts a fresh save with. */
-  startingInventory: [{ itemId: 'healing_herb' as ItemId, quantity: 2 }],
+  startingInventory: [
+    { itemId: 'healing_herb' as ItemId, quantity: 2 },
+    { itemId: 'escape_rope' as ItemId, quantity: 1 },
+  ],
   /** Chance that a successfully-opened treasure also yields an item. */
   treasureDropChance: 0.45,
   /** Items are always granted on a boss victory. */

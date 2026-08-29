@@ -7,14 +7,13 @@ interface TypewriterTextProps {
   onTapComplete?: () => void
   /** Fired once (whether by animation finishing or tap-to-skip) when the full text is shown. */
   onRevealed?: () => void
-  hint?: string
 }
 
 /**
  * Visual-novel style typewriter text. Tapping the box completes the current
  * reveal immediately rather than waiting out the animation.
  */
-export function TypewriterText({ lines, charsPerSecond = 38, onTapComplete, onRevealed, hint }: TypewriterTextProps) {
+export function TypewriterText({ lines, charsPerSecond = 38, onTapComplete, onRevealed }: TypewriterTextProps) {
   const fullText = lines.join('\n')
   const [shown, setShown] = useState(0)
   const [revealedFired, setRevealedFired] = useState(false)
@@ -51,7 +50,6 @@ export function TypewriterText({ lines, charsPerSecond = 38, onTapComplete, onRe
   return (
     <div className="typewriter-box" onClick={handleTap} role="button" tabIndex={0}>
       <div style={{ whiteSpace: 'pre-wrap' }}>{fullText.slice(0, shown)}</div>
-      <span className="tap-hint">{done ? hint ?? 'tap to continue' : 'tap to skip'}</span>
     </div>
   )
 }

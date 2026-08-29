@@ -331,6 +331,16 @@ export const useDungeonStore = create<DungeonStore>()((set, get) => ({
     if (countOf(store.inventory, itemId) <= 0) return
 
     const def = getItemDef(itemId)
+
+    // An Escape Rope is how the player leaves a dungeon: it ends the run
+    // as a voluntary retreat, which costs no Life Point.
+    if (def.effect.kind === 'escape') {
+      store.consumeItem(itemId)
+      set({ activePanel: null })
+      finishRun(set, get, { abandoned: true, totemDefeated: false })
+      return
+    }
+
     store.replaceTotem(run.config.totemId, (t) => applyItemToTotem(t, def))
     if (def.effect.kind === 'charge') {
       store.replaceSpells((spells) => applyItemToSpells(spells, totemDeckIds(run), def))

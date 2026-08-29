@@ -654,28 +654,30 @@ select:focus {
   justify-content: center;
 }
 
-/* object-fit: contain (not cover) so the whole enemy/event art is always
-   visible instead of being cropped by the frame, and a squared frame
-   (not a circular clip) so nothing near the corners gets cut off. */
+/* The art sits directly on the scene with no frame around it — a border
+   and panel behind a transparent sprite just reads as a stray window.
+   object-fit: contain (not cover) still keeps the whole sprite visible
+   rather than cropping it. */
 .battle-enemy-overlay .asset-img,
 .explore-event-overlay .asset-img {
   position: static;
   object-fit: contain;
-  border-radius: var(--radius-lg);
-  border: 2px solid var(--border-strong);
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-  background: rgba(10, 12, 18, 0.4);
+  border: 0;
+  background: none;
+  /* A soft drop shadow lifts the sprite off the backdrop without drawing
+     a box around it. */
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.55));
 }
 
 .battle-enemy-overlay .asset-img {
-  width: 64%;
-  height: 64%;
+  width: 80%;
+  height: 80%;
 }
 
 .explore-event-overlay .asset-img {
-  width: 42%;
-  height: 42%;
-  border-radius: var(--radius-md);
+  /* 25% larger than the previous 42%. */
+  width: 53%;
+  height: 53%;
 }
 
 .scene-window .scene-tag {
@@ -1294,10 +1296,14 @@ select:focus {
   color: var(--accent-green);
 }
 
+/* One stacked column, fixed order: Move, Totem, Tendency, Items. A grid
+   reflows as items are added or removed; a column never does, so the
+   button under the player's thumb is always the same one. */
 .room-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .room-action {
@@ -2524,17 +2530,21 @@ select:focus {
 
 /* ---- Battle: attack-card clue, barrier state, defense volley ---- */
 
-/* The masked English clue is the whole card face during an attack, so it
-   reads at the same weight the Korean word used to. */
+/* The two-letter clue is the whole card face during an attack, so it gets
+   the card's full height and reads as the card's identity. */
 .word.card-clue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 76px;
   font-family: var(--font-mono, monospace);
-  font-size: 17px;
+  font-size: 40px;
   font-weight: 700;
-  letter-spacing: 3px;
+  letter-spacing: 4px;
   color: var(--accent-cyan);
+  text-shadow: 0 0 18px var(--glow-cyan);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .card-barrier {
@@ -2857,4 +2867,195 @@ select:focus {
 .spell-editor .field .faint {
   font-size: 11px;
   line-height: 1.35;
+}
+
+/* ---- Standby: stacked actions and the Move destination menu ---- */
+
+/* Stacked rows put the icon beside the text rather than above it, which
+   keeps four buttons inside one viewport without shrinking any of them
+   below a comfortable tap target. */
+.room-actions .room-action {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 0;
+  align-items: center;
+  padding: 10px 14px;
+  min-height: 56px;
+}
+
+.room-actions .room-action .icon {
+  grid-row: 1 / span 2;
+  font-size: 22px;
+}
+
+.room-actions .room-action .label {
+  align-self: end;
+}
+
+.room-actions .room-action .sub {
+  align-self: start;
+}
+
+.room-action-caret {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--accent-cyan);
+}
+
+/* Places the run has already found are destinations, not commands — they
+   hang off Move instead of cluttering the hub with extra buttons. */
+.destination-menu {
+  width: min(360px, calc(100% - 32px));
+  margin: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--accent-cyan-dim);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 30px -12px var(--glow-cyan);
+}
+
+.destination-menu h2 {
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.destination-option {
+  appearance: none;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  min-height: 56px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--accent-cyan-dim);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+}
+
+.destination-option.danger {
+  border-left-color: var(--accent-red);
+}
+
+.destination-option:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.destination-option .icon {
+  grid-row: 1 / span 2;
+  font-size: 22px;
+}
+
+.destination-option .label {
+  align-self: end;
+  font-weight: 700;
+}
+
+.destination-option .sub {
+  align-self: start;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ---- Results: one viewport, details behind modals ---- */
+
+.results-screen {
+  gap: 10px;
+}
+
+.results-head {
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.results-head .glyph {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.results-head h1 {
+  font-size: 24px;
+  margin: 2px 0;
+}
+
+.results-head p {
+  font-size: 13px;
+}
+
+/* A denser stat grid than the standalone one — three across, less padding,
+   so six figures still fit above the fold. */
+.results-grid.tight {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.results-grid.tight .stat-tile {
+  padding: 8px 6px;
+}
+
+.results-grid.tight .stat-tile .value {
+  font-size: 17px;
+}
+
+.results-grid.tight .stat-tile .label {
+  font-size: 10px;
+}
+
+.totem-outcome {
+  padding: 10px 12px;
+  flex-shrink: 0;
+}
+
+.accuracy-panel {
+  padding: 10px 12px;
+  flex-shrink: 0;
+}
+
+.accuracy-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.accuracy-cell {
+  text-align: center;
+}
+
+.accuracy-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+/* Short phones trim the flourish, not the figures. */
+@media (max-height: 720px) {
+  .results-head .glyph {
+    font-size: 26px;
+  }
+
+  .results-head h1 {
+    font-size: 20px;
+  }
+
+  .results-grid.tight .stat-tile .value {
+    font-size: 15px;
+  }
+
+  .accuracy-value {
+    font-size: 17px;
+  }
 }

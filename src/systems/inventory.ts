@@ -63,6 +63,8 @@ export function itemUseText(def: ItemDef): string {
       return `${def.icon} ${def.name} used — HP restored.`
     case 'charge':
       return `${def.icon} ${def.name} used — your deck crackles with charge.`
+    case 'escape':
+      return `${def.icon} ${def.name} used — you climb out of the dungeon.`
   }
 }
 

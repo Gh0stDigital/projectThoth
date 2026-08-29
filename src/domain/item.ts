@@ -4,7 +4,7 @@
  * config/items.ts; this file only describes the shapes.
  */
 
-export type ItemId = 'healing_herb' | 'greater_elixir' | 'charge_crystal'
+export type ItemId = 'healing_herb' | 'greater_elixir' | 'charge_crystal' | 'escape_rope'
 
 /**
  * What using an item does. Kept as a discriminated union so systems can
@@ -14,6 +14,8 @@ export type ItemId = 'healing_herb' | 'greater_elixir' | 'charge_crystal'
 export type ItemEffect =
   | { kind: 'heal'; /** Fraction of max HP restored, 0..1. */ fraction: number }
   | { kind: 'charge'; /** Charge added to every Spell in the battle deck. */ amount: number }
+  /** Ends the run and walks out. Costs no Life Point — this is a retreat. */
+  | { kind: 'escape' }
 
 export interface ItemDef {
   id: ItemId

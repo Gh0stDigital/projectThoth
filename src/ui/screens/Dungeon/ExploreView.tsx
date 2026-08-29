@@ -6,7 +6,6 @@ import { canEnterBoss } from '@/systems/dungeonSession'
 import { AssetImage } from '@/ui/components/AssetImage'
 import { TypewriterText } from '@/ui/components/TypewriterText'
 import { Bar } from '@/ui/components/Bar'
-import { ProgressMeter } from '@/ui/components/ProgressMeter'
 import { DungeonProgressTrack } from '@/ui/components/DungeonProgressTrack'
 import { TotemPanel } from '@/ui/components/TotemPanel'
 import { MoveRollModal } from '@/ui/components/MoveRollModal'
@@ -54,7 +53,6 @@ export function ExploreView() {
 
   const openPanel = useDungeonStore((s) => s.openPanel)
   const closePanel = useDungeonStore((s) => s.closePanel)
-  const toggleWordInfo = useDungeonStore((s) => s.toggleWordInfo)
   const move = useDungeonStore((s) => s.move)
   const finishRoll = useDungeonStore((s) => s.finishRoll)
   const acknowledgeEvent = useDungeonStore((s) => s.acknowledgeEvent)
@@ -73,7 +71,6 @@ export function ExploreView() {
   const enterBossDoor = useDungeonStore((s) => s.enterBossDoor)
   const confirmingBoss = useDungeonStore((s) => s.confirmingBoss)
   const useItem = useDungeonStore((s) => s.useItem)
-  const abandonRun = useDungeonStore((s) => s.abandonRun)
   const tickEventTimer = useDungeonStore((s) => s.tickEventTimer)
 
   const allSpells = usePersistentStore((s) => s.spells)
@@ -93,7 +90,14 @@ export function ExploreView() {
   // deliberately NOT on the stage, so advancing within one event (reading
   // a chest, then choosing to open it) doesn't retype the same lines.
   const showingOutcome = run.lastOutcomeText.length > 0
-  const dialogueKey = `${event?.id ?? 'none'}:${showingOutcome ? 'outcome' : 'intro'}`
+  const dialogueLines = showingOutcome
+    ? run.lastOutcomeText
+    : event
+      ? event.bodyText
+      : run.standbyNotice
+        ? [run.standbyNotice]
+        : []
+  const dialogueKey = `${event?.id ?? run.standbyNotice ?? 'none'}:${showingOutcome ? 'outcome' : 'intro'}`
   const [revealedKey, setRevealedKey] = useState<string | null>(null)
   const dialogueRevealed = revealedKey === dialogueKey
 
@@ -137,12 +141,6 @@ export function ExploreView() {
       }
       data-mode={run.state === 'Rest' ? 'rest' : undefined}
     >
-      <div className="row">
-        <button className="btn btn-ghost btn-sm" onClick={abandonRun}>
-          ✕ Leave Dungeon
-        </button>
-      </div>
-
       <RunHud run={run} totem={totem} modeLabel={modeLabels[run.state]} />
 
       <DungeonProgressTrack challenged={introduced} total={total} bossUnlocked={run.keyFound} />
@@ -159,26 +157,19 @@ export function ExploreView() {
         {rolling && <MoveRollModal resultTitle={null} onSettled={() => setRollSettled(true)} />}
       </div>
 
-      {/* Event narration, below the scene window. */}
-      {event && !inStandby && !rolling && stage !== 'rest' && run.state !== 'Rest' && (
+      {/* One dialogue window, always in the same place. It is deliberately
+          NOT unmounted while the die is in the air — the text carries on
+          through the roll and is replaced once the roll lands. */}
+      {dialogueLines.length > 0 && run.state !== 'Rest' && (
         <TypewriterText
           key={dialogueKey}
-          lines={showingOutcome ? run.lastOutcomeText : event.bodyText}
+          lines={dialogueLines}
           charsPerSecond={charsPerSecond}
           onRevealed={() => setRevealedKey(dialogueKey)}
         />
       )}
 
-      {inStandby && run.standbyNotice && <div className="room-notice">{run.standbyNotice}</div>}
-
       <TotemPanel totem={totem} compact />
-
-      <ProgressMeter
-        challenged={introduced}
-        total={total}
-        bossUnlocked={run.keyFound}
-        onOpenWordInfo={toggleWordInfo}
-      />
 
       {run.eventTimer && (
         <div className="timer-row">
