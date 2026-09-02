@@ -22,6 +22,7 @@ import {
 import { createTotem, equipSpellSet, isUsable } from '@/systems/totemManager'
 import { migrateSpells } from '@/systems/spellMigration'
 import { totemBalance } from '@/config/balance'
+import { hasAsset } from '@/config/assets'
 
 export interface DungeonSelectionDraft {
   totemSpellSetId: string | null
@@ -64,14 +65,13 @@ function loadInitial(): PersistedData {
     // are filled in with safe defaults rather than dropped.
     spells: migrateSpells(saved.spells ?? defaults.spells),
     spellSets: saved.spellSets ?? defaults.spellSets,
-    // For now every Totem displays the 'default' avatar (see
-    // totemManager.createTotem) — override old saves too, since a Totem's
-    // avatarKey was previously locked in at creation and only 'default'
-    // is guaranteed to have real art. Drop this override once every
-    // totems/* slot has its own artwork and avatarKey should vary again.
     totems: (saved.totems && saved.totems.length > 0 ? saved.totems : defaults.totems).map((t) => ({
       ...t,
-      avatarKey: 'default',
+      // A saved portrait is kept as-is. An unknown key (art removed or
+      // renamed since the save) falls back rather than breaking the load —
+      // getAsset() would show the placeholder anyway, so normalise it here
+      // and keep the stored value honest.
+      avatarKey: hasAsset('totems', t.avatarKey) ? t.avatarKey : 'default',
       // Life Points were added after some saves were written — give older
       // Totems a full set rather than a destroyed one.
       lifePoints: t.lifePoints ?? totemBalance.startingLifePoints,
@@ -101,6 +101,8 @@ export interface PersistentStore extends PersistedData {
   deleteSpellSet(id: string): void
 
   createTotem(name: string): Totem
+  /** Swaps a Totem's portrait to any art the totems registry offers. */
+  setTotemAvatar(totemId: string, avatarKey: string): void
   /** Totems that can still enter a dungeon (not destroyed). */
   usableTotems(): Totem[]
   setActiveTotem(id: string): void
@@ -180,6 +182,12 @@ export const usePersistentStore = create<PersistentStore>()((set, get) => ({
     // whose only Totem was destroyed would still have no one to play as.
     set((state) => ({ totems: [...state.totems, totem], activeTotemId: totem.id }))
     return totem
+  },
+  setTotemAvatar(totemId, avatarKey) {
+    if (!hasAsset('totems', avatarKey)) return
+    set((state) => ({
+      totems: state.totems.map((t) => (t.id === totemId ? { ...t, avatarKey } : t)),
+    }))
   },
   usableTotems() {
     return get().totems.filter(isUsable)
