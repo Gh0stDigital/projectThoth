@@ -48,10 +48,27 @@ Two things make the from-disk cases work, and both are load-bearing:
   `<script>` at the end of `<body>`, so there is no separate file left to fetch
   and nothing left to block.
 
+### If it opens to a white screen
+
+The build no longer fails silently. Whatever you see tells you what happened:
+
+| On screen | Meaning |
+| --- | --- |
+| The game | Working. |
+| *"JavaScript is turned off"* | The page rendered but scripting is disabled. **On iPhone this is what the Files app preview looks like** — it displays HTML but does not run JavaScript, so a JS app can never start there. Open the file in a real browser instead. |
+| *"Starting Thoth…"*, stuck | The page loaded but the bundle never executed. |
+| *"Thoth could not start"* + an error | The bundle ran and threw. The error text is on screen — that's the thing to report. |
+| Genuinely blank | The file itself didn't load. Check it downloaded completely (it's ~10 MB). |
+
+The iPhone Files-app preview is the common one, and it is a limitation of that
+preview, not of the build. `<noscript>`, a boot placeholder and a global error
+handler live in `index.html` ahead of the bundle so that none of these states
+can present as an unexplained white page.
+
 On a phone, the single-file `thoth-offline.html` is the most reliable option —
-a downloaded HTML file opened from Files works with the device in airplane mode.
-Adding a hosted copy to the home screen also works, but only once it has been
-opened online at least once so the service worker can precache.
+*provided it is opened in something that runs JavaScript*. Adding a hosted copy
+to the home screen is the most dependable route of all, but it has to be opened
+online once so the service worker can precache.
 
 ## Project structure
 

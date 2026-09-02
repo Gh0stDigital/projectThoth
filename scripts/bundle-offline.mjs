@@ -73,6 +73,10 @@ if (!existsSync(DIST)) {
   process.exit(1)
 }
 
+// Sits immediately before the inlined app script. The single-file build
+// swaps it for the asset map, which must be defined before the app runs.
+const APP_MARKER = '<!--thoth-app-->'
+
 const htmlPath = join(DIST, 'index.html')
 let html = readFileSync(htmlPath, 'utf8')
 
@@ -102,7 +106,7 @@ html = replaceLiteral(html, scriptTag, '')
 html = replaceLiteral(
   html,
   '</body>',
-  `  <script>${escapeForInlineScript(js)}</script>\n  </body>`,
+  `  ${APP_MARKER}\n  <script>${escapeForInlineScript(js)}</script>\n  </body>`,
 )
 
 // Any stylesheet link would be CORS-blocked from disk exactly like the
@@ -116,7 +120,7 @@ if (styleMatch) {
   rmSync(join(DIST, styleMatch[1]), { force: true })
 }
 
-writeFileSync(htmlPath, html)
+writeFileSync(htmlPath, replaceLiteral(html, APP_MARKER, ''))
 rmSync(jsPath, { force: true })
 console.log(`bundle-offline: dist/index.html is self-contained code (${kb(Buffer.byteLength(html))})`)
 
@@ -141,7 +145,11 @@ if (existsSync(faviconPath)) {
 // Must be defined before the app script runs, so it goes immediately
 // ahead of it rather than at the top of the document.
 const mapScript = `<script>window.__THOTH_INLINE_ASSETS=${JSON.stringify(inline)}</script>`
-single = replaceLiteral(single, '  <script>', `  ${mapScript}\n  <script>`)
+single = replaceLiteral(single, APP_MARKER, mapScript)
+
+// Nothing sits beside this file, so a manifest link would only ever be a
+// failed request.
+single = replaceLiteral(single, /<link\b[^>]*rel="manifest"[^>]*>\s*/, '')
 
 const singlePath = join(DIST, 'thoth-offline.html')
 writeFileSync(singlePath, single)
