@@ -9,6 +9,11 @@ export default defineConfig({
   // with zero server and zero network requests — fully offline.
   base: './',
   build: {
+    // An offline build can land on whatever browser the player has, with no
+    // way to update it and no console to diagnose it — a syntax error the
+    // engine can't parse is just a white screen. Target iOS 14 (2020) so the
+    // bundle stays parseable well below any phone we expect to see.
+    target: 'safari14',
     // A classic IIFE bundle, not an ES module. Module scripts are
     // CORS-checked, and a page opened from disk has a null origin, so a
     // `type="module"` build is blocked outright by the browser and the app
