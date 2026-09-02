@@ -21,10 +21,21 @@ export type AssetCategory =
 
 const BASE = 'assets'
 
+/**
+ * Data URIs for every image, present only in the single-file offline
+ * build (see scripts/bundle-offline.mjs), which inlines the art so one
+ * HTML file is the whole game. Absent in every other build, where images
+ * are ordinary sibling files.
+ */
+function inlinedAssets(): Record<string, string> | undefined {
+  return (globalThis as { __THOTH_INLINE_ASSETS?: Record<string, string> }).__THOTH_INLINE_ASSETS
+}
+
 function assetUrl(category: AssetCategory, file: string): string {
   // Vite serves /public at the app root; base: './' in vite.config.ts keeps
   // this working when the built app is opened directly from disk.
-  return `${BASE}/${category}/${file}.png`
+  const path = `${BASE}/${category}/${file}.png`
+  return inlinedAssets()?.[path] ?? path
 }
 
 const registry: Record<AssetCategory, Record<string, string>> = {
