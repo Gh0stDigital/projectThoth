@@ -70,6 +70,42 @@ On a phone, the single-file `thoth-offline.html` is the most reliable option —
 to the home screen is the most dependable route of all, but it has to be opened
 online once so the service worker can precache.
 
+## Art
+
+Every PNG under `public/assets/<category>/` is registered automatically —
+`scripts/gen-asset-manifest.mjs` scans the folder and writes
+`src/config/assetManifest.ts`. Drop a file in, run `npm run gen:assets` (it
+also runs on install and before every build), and it is selectable in game.
+There is no list to update by hand.
+
+Placeholders are generated for any slot that has no file yet, and are never
+overwritten — committing real artwork over one is permanent.
+
+### Dungeon backdrops
+
+`public/assets/scenes/` holds the dungeon art, mapped to situations by
+`src/config/scenes.ts`. The backdrop is chosen per event, so it changes every
+time the player moves.
+
+| File | Used for |
+| --- | --- |
+| `dkp_coridoor1`, `dkp_coridoor2` | Standby between events; also stands in for encounters and traps |
+| `dkp_treasureRoom` | Treasure events |
+| `dkp_trapRoom` | Traps |
+| `dkp_battle` | Ordinary battles |
+| `dkp_bossBattle` | The boss door and the boss fight |
+| `dkp_restRoom` | Rest areas |
+| `dkp_shrine` | Magic rooms; also traps and encounters |
+| `dkp_keyRoom` | The Key Room, and some treasure rooms |
+| `dkp_2way` | Direction forks |
+
+Where a situation lists more than one option the event's own room shows about
+two thirds of the time and an alternate the rest, so the dungeon varies
+without the backdrop looking wrong. Lookups ignore case and separators
+(`dkp_keyRoom` = `dkp-keyroom`), and each situation lists spelling variants,
+so art resolves whichever way the files are named. Anything still missing
+falls back to the run's location art rather than breaking.
+
 ## Project structure
 
 Gameplay logic is kept independent of presentation wherever practical:

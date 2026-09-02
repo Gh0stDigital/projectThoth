@@ -18,6 +18,10 @@ export function registerOfflineCache(): void {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return
   // file:// and any other non-http scheme: nothing to cache, nothing to do.
   if (!location.protocol.startsWith('http')) return
+  // sw.js is emitted by the build, so it does not exist under `vite dev`.
+  // Asking for it there gets index.html back and the browser logs a MIME
+  // type error that has nothing to do with the app.
+  if (!import.meta.env.PROD) return
 
   window.addEventListener('load', () => {
     // A failure here must never take the game down with it — the app works

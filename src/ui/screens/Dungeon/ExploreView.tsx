@@ -3,6 +3,7 @@ import type { DungeonState } from '@/domain/dungeon'
 import { useDungeonStore, challengedCount } from '@/state/dungeonStore'
 import { usePersistentStore } from '@/state/persistentStore'
 import { canEnterBoss } from '@/systems/dungeonSession'
+import { sceneArt, sceneKindForEvent } from '@/config/scenes'
 import { AssetImage } from '@/ui/components/AssetImage'
 import { TypewriterText } from '@/ui/components/TypewriterText'
 import { Bar } from '@/ui/components/Bar'
@@ -129,6 +130,16 @@ export function ExploreView() {
   // Inside an event (either still reading it, or answering//resolving it).
   const inEvent = run.state === 'ResolvingEvent' || run.state === 'VocabularyInput'
 
+  // The backdrop follows the situation rather than the run, so it changes
+  // every move. Seeded by event id (stable for the length of an event) and,
+  // in Standby, by turn — so consecutive corridors aren't the same picture.
+  const scene =
+    run.state === 'Rest'
+      ? sceneArt('rest', 'rest', run.config.locationKey)
+      : event && !inStandby && !rolling
+        ? sceneArt(sceneKindForEvent(event.type), event.id, run.config.locationKey)
+        : sceneArt('standby', String(run.turn), run.config.locationKey)
+
   return (
     <div
       className="screen"
@@ -147,7 +158,7 @@ export function ExploreView() {
 
       {/* The scene window is always on screen — every state, every prompt. */}
       <div className="scene-window dungeon">
-        <AssetImage category="locations" assetKey={run.config.locationKey} alt="Dungeon location" />
+        <AssetImage category={scene.category} assetKey={scene.key} alt="Dungeon location" />
         {event && !inStandby && !rolling && (
           <div className="explore-event-overlay">
             <AssetImage category={event.imageCategory} assetKey={event.imageKey} alt={event.title} />

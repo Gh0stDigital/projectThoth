@@ -7,7 +7,7 @@ import { Bar } from '@/ui/components/Bar'
 import { SlidePanel } from '@/ui/components/SlidePanel'
 import { totemBalance } from '@/config/balance'
 import { assetKeys } from '@/config/assets'
-import { isUsable } from '@/systems/totemManager'
+import { isUsable, nameFromAvatarKey } from '@/systems/totemManager'
 
 export function TotemScreen() {
   const goTo = useUiStore((s) => s.goTo)
@@ -28,6 +28,17 @@ export function TotemScreen() {
   const [nameDraft, setNameDraft] = useState(totem?.name ?? '')
   const [pickerOpen, setPickerOpen] = useState(false)
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
+  const [rosterOpen, setRosterOpen] = useState(false)
+
+  // Switching Totem changes who the rename field is editing, so the draft
+  // has to follow. Without this, opening rename on a freshly switched Totem
+  // would offer the previous one's name and save it over this one.
+  const [nameOwner, setNameOwner] = useState(totem?.id)
+  if (totem && nameOwner !== totem.id) {
+    setNameOwner(totem.id)
+    setNameDraft(totem.name)
+    setRenaming(false)
+  }
 
   if (!totem) {
     return (
@@ -46,17 +57,20 @@ export function TotemScreen() {
       <TopBar title="Totem" onBack={() => goTo('menu')} />
 
       <div className="panel" style={{ textAlign: 'center' }}>
-        <button
-          className="totem-hero-frame"
-          onClick={() => setAvatarPickerOpen(true)}
-          title="Change portrait"
-        >
+        <button className="totem-hero-frame" onClick={() => setRosterOpen(true)} title="Switch Totem">
           <AssetImage category="totems" assetKey={totem.avatarKey} alt={totem.name} className="avatar-img avatar-hero" />
         </button>
-        {/* Below the frame, not over the art. */}
-        <button className="totem-hero-edit" onClick={() => setAvatarPickerOpen(true)}>
-          Change portrait
-        </button>
+        {/* Below the frame, not over the art. Switching is the primary
+            action — each Totem is its own character, with its own level and
+            record. Repainting the one you have is the rarer, cosmetic case. */}
+        <div className="btn-row" style={{ justifyContent: 'center' }}>
+          <button className="totem-hero-edit" onClick={() => setRosterOpen(true)}>
+            Switch Totem
+          </button>
+          <button className="totem-hero-edit" onClick={() => setAvatarPickerOpen(true)}>
+            Change portrait
+          </button>
+        </div>
 
         {renaming ? (
           <div className="btn-row" style={{ justifyContent: 'center' }}>
@@ -128,9 +142,28 @@ export function TotemScreen() {
         </button>
       </div>
 
-      {totems.length > 1 && (
-        <div className="field">
-          <label>Your Totems</label>
+      <div className="field">
+        <label>Your Totems</label>
+        <button className="card row" style={{ width: '100%', textAlign: 'left' }} onClick={() => setRosterOpen(true)}>
+          <div>
+            <div style={{ fontWeight: 700 }}>
+              {totems.length} raised{usable.length < totems.length ? ` · ${usable.length} still standing` : ''}
+            </div>
+            <div className="faint">Switch to another, or raise a new one</div>
+          </div>
+          <span className="faint">Switch</span>
+        </button>
+      </div>
+
+      <div style={{ flex: 1 }} />
+
+      {rosterOpen && (
+        <SlidePanel title="Your Totems" onClose={() => setRosterOpen(false)}>
+          <p className="faint">
+            Each Totem is its own character — its own level, experience, HP, money, Life Points and record.
+            Switching changes who you play as; it is not a change of portrait.
+          </p>
+
           <div className="list">
             {totems.map((t) => (
               <button
@@ -138,28 +171,45 @@ export function TotemScreen() {
                 className="card row"
                 disabled={!isUsable(t)}
                 style={{ width: '100%', textAlign: 'left', opacity: isUsable(t) ? 1 : 0.5 }}
-                onClick={() => setActiveTotem(t.id)}
+                onClick={() => {
+                  setActiveTotem(t.id)
+                  setRosterOpen(false)
+                }}
               >
-                <div>
+                <AssetImage category="totems" assetKey={t.avatarKey} alt={t.name} className="avatar-img" />
+                <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700 }}>{t.name}</div>
                   <div className="faint">
-                    Lv {t.level} · {t.destroyed ? 'destroyed' : `◆ ${t.lifePoints}/${t.maxLifePoints}`}
+                    Lv {t.level} · {t.destroyed ? 'destroyed' : `❤️ ${t.currentHp}/${t.maxHp} · ◆ ${t.lifePoints}/${t.maxLifePoints}`}
                   </div>
                 </div>
                 {t.id === totem.id ? <span style={{ color: 'var(--accent-gold)' }}>✓ Active</span> : null}
               </button>
             ))}
           </div>
-        </div>
-      )}
 
-      {usable.length === 0 && (
-        <button className="btn btn-primary btn-block" onClick={() => createNewTotem('Totem')}>
-          🗿 Raise a New Totem
-        </button>
+          <h3>Raise a New Totem</h3>
+          <p className="faint">
+            Starts at level 1 with a full set of Life Points, named after its portrait. Every portrait in{' '}
+            <code>public/assets/totems</code> is available.
+          </p>
+          <div className="avatar-grid">
+            {assetKeys('totems').map((key) => (
+              <button
+                key={key}
+                className="avatar-option"
+                onClick={() => {
+                  createNewTotem(nameFromAvatarKey(key), key)
+                  setRosterOpen(false)
+                }}
+              >
+                <AssetImage category="totems" assetKey={key} alt={key} className="avatar-img" />
+                <span className="avatar-option-name">{nameFromAvatarKey(key)}</span>
+              </button>
+            ))}
+          </div>
+        </SlidePanel>
       )}
-
-      <div style={{ flex: 1 }} />
 
       {avatarPickerOpen && (
         <SlidePanel title="Choose Portrait" onClose={() => setAvatarPickerOpen(false)}>

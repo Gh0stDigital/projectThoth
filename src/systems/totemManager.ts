@@ -2,15 +2,36 @@ import type { Totem } from '@/domain/totem'
 import { totemBalance } from '@/config/balance'
 import { makeId } from './idGen'
 
-export function createTotem(name: string): Totem {
+/**
+ * A readable name from a portrait key: `totem_silverKnight` -> "Silver
+ * Knight". Used when raising a Totem from its portrait, so each one arrives
+ * already named after the art rather than as another "Totem".
+ */
+export function nameFromAvatarKey(avatarKey: string): string {
+  const base = avatarKey.replace(/^totem[_-]?/i, '')
+  const words = base
+    .replace(/[_-]+/g, ' ')
+    // splitCamelCase -> split Camel Case
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .trim()
+  if (!words) return 'Totem'
+  return words
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
+
+/**
+ * Raises a new Totem. Each one is its own character — own name, level,
+ * experience, HP, money, Life Points and record — so switching between them
+ * swaps who you are playing, not just how you look.
+ */
+export function createTotem(name: string, avatarKey = 'default'): Totem {
   const level = 1
   return {
     id: makeId('totem'),
     name: name.trim() || 'Totem',
-    // New Totems start on the neutral portrait; it can be changed at any
-    // time from the Totem screen. Deliberately not randomised, so a Totem
-    // raised for testing a specific look starts from a known state.
-    avatarKey: 'default',
+    avatarKey,
     level,
     experience: 0,
     currentHp: totemBalance.maxHp(level),

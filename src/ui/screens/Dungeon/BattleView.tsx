@@ -4,6 +4,7 @@ import { usePersistentStore } from '@/state/persistentStore'
 import { attackCardClue, selectableSpellIds } from '@/systems/battleEngine'
 import { isFullyCleared, remainingCount } from '@/systems/bossPlateau'
 import { AssetImage } from '@/ui/components/AssetImage'
+import { sceneArt } from '@/config/scenes'
 import { Bar } from '@/ui/components/Bar'
 import { SpellCard } from '@/ui/components/SpellCard'
 import { TotemPanel } from '@/ui/components/TotemPanel'
@@ -68,6 +69,13 @@ export function BattleView() {
   const lastLog = battle.log[battle.log.length - 1] ?? ''
   const answering = battle.phase === 'player_challenge' || battle.phase === 'enemy_challenge'
 
+  // A boss fight gets the boss room; ordinary fights get battle art.
+  const scene = sceneArt(
+    battle.isBoss ? 'boss_battle' : 'battle_screen',
+    battle.enemy.name,
+    run.config.locationKey,
+  )
+
   return (
     <div className="screen" data-challenge={answering ? 'true' : undefined}>
       <div className="row">
@@ -82,7 +90,7 @@ export function BattleView() {
       <RunHud run={run} totem={totem} modeLabel={battle.isBoss ? 'Boss Battle' : 'Battle'} />
 
       <div className="scene-window battle">
-        <AssetImage category="locations" assetKey={run.config.locationKey} alt="Dungeon location" />
+        <AssetImage category={scene.category} assetKey={scene.key} alt="Dungeon location" />
         <div className="battle-enemy-overlay">
           <AssetImage category={battle.enemy.imageCategory} assetKey={battle.enemy.imageKey} alt={battle.enemy.name} />
         </div>

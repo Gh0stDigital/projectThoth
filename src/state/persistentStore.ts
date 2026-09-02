@@ -100,7 +100,8 @@ export interface PersistentStore extends PersistedData {
   removeSpellFromSet(setId: string, spellId: string): void
   deleteSpellSet(id: string): void
 
-  createTotem(name: string): Totem
+  /** Raises a new Totem — its own character, not a reskin of the current one. */
+  createTotem(name: string, avatarKey?: string): Totem
   /** Swaps a Totem's portrait to any art the totems registry offers. */
   setTotemAvatar(totemId: string, avatarKey: string): void
   /** Totems that can still enter a dungeon (not destroyed). */
@@ -176,8 +177,8 @@ export const usePersistentStore = create<PersistentStore>()((set, get) => ({
     }))
   },
 
-  createTotem(name) {
-    const totem = createTotem(name)
+  createTotem(name, avatarKey) {
+    const totem = createTotem(name, avatarKey && hasAsset('totems', avatarKey) ? avatarKey : 'default')
     // A newly raised Totem becomes the active one — otherwise a player
     // whose only Totem was destroyed would still have no one to play as.
     set((state) => ({ totems: [...state.totems, totem], activeTotemId: totem.id }))

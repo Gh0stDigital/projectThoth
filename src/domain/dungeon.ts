@@ -10,7 +10,11 @@ export interface DungeonConfig {
   tierId: DungeonTierId
   /** Resolved word pool for this run (capped to the tier's word limit). */
   dungeonWordIds: string[]
-  /** Backdrop shown for the whole run so the player always sees where they are. */
+  /**
+   * Fallback backdrop for the run. The scene shown is normally chosen per
+   * event (config/scenes.ts) so it changes as the player moves; this is what
+   * gets drawn when a situation has no scene art yet.
+   */
   locationKey: string
 }
 
