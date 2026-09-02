@@ -1813,9 +1813,9 @@ select:focus {
 }
 
 .totem-panel.compact .avatar-img {
-  width: 30%;
-  max-width: 84px;
-  min-width: 64px;
+  width: 36%;
+  max-width: 108px;
+  min-width: 78px;
 }
 
 .totem-panel.compact .name-row {
@@ -2011,21 +2011,17 @@ select:focus {
   font-size: 12.5px;
 }
 
-.room-action {
-  min-height: 84px;
-  padding: 11px 12px;
+.room-actions .room-action {
+  min-height: 62px;
+  padding: 10px 12px;
 }
 
-.room-action .icon {
+.room-actions .room-action .label {
   font-size: 17px;
 }
 
-.room-action .label {
-  font-size: 14px;
-}
-
-.room-action .sub {
-  font-size: 10.5px;
+.room-actions .room-action .sub {
+  font-size: 11px;
 }
 
 /* ---- Move: dice-roll overlay (rendered inside the scene window) ---- */
@@ -2128,8 +2124,8 @@ select:focus {
   }
 
   .totem-panel.compact .avatar-img {
-    max-width: 68px;
-    min-width: 52px;
+    max-width: 76px;
+    min-width: 60px;
   }
 
   .room-flavor h3 {
@@ -2159,10 +2155,6 @@ select:focus {
   .answer-slot {
     width: 36px;
     height: 42px;
-  }
-
-  .room-action .sub {
-    display: none;
   }
 
   .dungeon-info-panel {
@@ -2871,31 +2863,26 @@ select:focus {
 
 /* ---- Standby: stacked actions and the Move destination menu ---- */
 
-/* Stacked rows put the icon beside the text rather than above it, which
-   keeps four buttons inside one viewport without shrinking any of them
-   below a comfortable tap target. */
+/* No icon column any more — the label is the button, centred, on a tall
+   target that is comfortable to hit one-handed. */
 .room-actions .room-action {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  column-gap: 12px;
-  row-gap: 0;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 10px 14px;
-  min-height: 56px;
-}
-
-.room-actions .room-action .icon {
-  grid-row: 1 / span 2;
-  font-size: 22px;
+  justify-content: center;
+  gap: 3px;
+  text-align: center;
+  padding: 14px 16px;
+  min-height: 72px;
 }
 
 .room-actions .room-action .label {
-  align-self: end;
+  font-size: 19px;
+  letter-spacing: 0.02em;
 }
 
 .room-actions .room-action .sub {
-  align-self: start;
+  font-size: 12px;
 }
 
 .room-action-caret {
@@ -2926,16 +2913,16 @@ select:focus {
 
 .destination-option {
   appearance: none;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  column-gap: 12px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  text-align: left;
+  justify-content: center;
+  gap: 3px;
+  text-align: center;
   cursor: pointer;
   font-family: inherit;
-  min-height: 56px;
-  padding: 10px 14px;
+  min-height: 68px;
+  padding: 12px 14px;
   background: var(--bg-card);
   border: 1px solid var(--border-strong);
   border-left: 3px solid var(--accent-cyan-dim);
@@ -2952,19 +2939,13 @@ select:focus {
   cursor: default;
 }
 
-.destination-option .icon {
-  grid-row: 1 / span 2;
-  font-size: 22px;
-}
-
 .destination-option .label {
-  align-self: end;
   font-weight: 700;
+  font-size: 17px;
 }
 
 .destination-option .sub {
-  align-self: start;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
@@ -3058,4 +3039,64 @@ select:focus {
   .accuracy-value {
     font-size: 17px;
   }
+}
+
+/* A 667-tall screen cannot fit four taller buttons, a bigger portrait and a
+   dialogue box at once. The label keeps its new size — it is what the
+   player reads — and the secondary line is what gives way. */
+@media (max-height: 720px) {
+  .room-actions .room-action {
+    min-height: 58px;
+    padding: 8px 12px;
+  }
+
+  .room-actions .room-action .sub {
+    display: none;
+  }
+
+  .destination-option {
+    min-height: 60px;
+    padding: 9px 12px;
+  }
+
+  .destination-option .sub {
+    display: none;
+  }
+}
+
+/* ---- The answer board absorbs its own overflow ----
+
+   A long word with a full set of decoys wraps the tile tray onto extra
+   rows, and with a multi-word enemy attack (progress dots + timer) that
+   was enough to push the screen past the viewport. The board is the thing
+   that grows, so it is the thing that gives: it may shrink, and the tray
+   scrolls inside it once the tiles no longer fit.
+
+   Deliberately only the board — the scene image, both HUDs and the timer
+   keep their size, so nothing around the player rescales mid-answer. Tile
+   size is untouched, so tap targets stay where they are. */
+.challenge-prompt {
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.challenge-prompt .tile-tray {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  /* Room for the scrollbar so tiles never sit under it. */
+  padding-right: 2px;
+}
+
+/* The prompt, the assembled answer and the actions stay put; only the
+   tray between them scrolls. */
+.challenge-prompt .prompt-label,
+.challenge-prompt .prompt-word,
+.challenge-prompt .tile-answer,
+.challenge-prompt .tile-actions {
+  flex-shrink: 0;
 }
