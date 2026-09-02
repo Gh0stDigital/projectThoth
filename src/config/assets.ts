@@ -106,3 +106,17 @@ export function pickFlavor(category: AssetCategory, seed: string): string {
 }
 
 export const assetRegistry = registry
+
+/**
+ * Every key a category offers, in registry order. This is the list the UI
+ * picks from, so anything added to the registry (and dropped into
+ * public/assets/<category>/) becomes selectable with no other change.
+ */
+export function assetKeys(category: AssetCategory): string[] {
+  return Object.keys(registry[category])
+}
+
+/** True when a key names real art rather than falling back to the placeholder. */
+export function hasAsset(category: AssetCategory, key: string): boolean {
+  return key in registry[category]
+}

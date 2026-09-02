@@ -6,6 +6,7 @@ import { AssetImage } from '@/ui/components/AssetImage'
 import { Bar } from '@/ui/components/Bar'
 import { SlidePanel } from '@/ui/components/SlidePanel'
 import { totemBalance } from '@/config/balance'
+import { assetKeys } from '@/config/assets'
 import { isUsable } from '@/systems/totemManager'
 
 export function TotemScreen() {
@@ -16,6 +17,7 @@ export function TotemScreen() {
   const equipTotemSpellSet = usePersistentStore((s) => s.equipTotemSpellSet)
   const editName = usePersistentStore((s) => s.replaceTotem)
   const createNewTotem = usePersistentStore((s) => s.createTotem)
+  const setTotemAvatar = usePersistentStore((s) => s.setTotemAvatar)
   const setActiveTotem = usePersistentStore((s) => s.setActiveTotem)
 
   // Prefer a Totem that can still be played; a destroyed one is only shown
@@ -25,6 +27,7 @@ export function TotemScreen() {
   const [renaming, setRenaming] = useState(false)
   const [nameDraft, setNameDraft] = useState(totem?.name ?? '')
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
 
   if (!totem) {
     return (
@@ -43,9 +46,17 @@ export function TotemScreen() {
       <TopBar title="Totem" onBack={() => goTo('menu')} />
 
       <div className="panel" style={{ textAlign: 'center' }}>
-        <div className="totem-hero-frame">
+        <button
+          className="totem-hero-frame"
+          onClick={() => setAvatarPickerOpen(true)}
+          title="Change portrait"
+        >
           <AssetImage category="totems" assetKey={totem.avatarKey} alt={totem.name} className="avatar-img avatar-hero" />
-        </div>
+        </button>
+        {/* Below the frame, not over the art. */}
+        <button className="totem-hero-edit" onClick={() => setAvatarPickerOpen(true)}>
+          Change portrait
+        </button>
 
         {renaming ? (
           <div className="btn-row" style={{ justifyContent: 'center' }}>
@@ -149,6 +160,30 @@ export function TotemScreen() {
       )}
 
       <div style={{ flex: 1 }} />
+
+      {avatarPickerOpen && (
+        <SlidePanel title="Choose Portrait" onClose={() => setAvatarPickerOpen(false)}>
+          <p className="faint">
+            Every portrait in <code>public/assets/totems</code>. Purely cosmetic — nothing else about the Totem
+            changes.
+          </p>
+          <div className="avatar-grid">
+            {assetKeys('totems').map((key) => (
+              <button
+                key={key}
+                className={`avatar-option${key === totem.avatarKey ? ' selected' : ''}`}
+                onClick={() => {
+                  setTotemAvatar(totem.id, key)
+                  setAvatarPickerOpen(false)
+                }}
+              >
+                <AssetImage category="totems" assetKey={key} alt={key} className="avatar-img" />
+                <span className="avatar-option-name">{key}</span>
+              </button>
+            ))}
+          </div>
+        </SlidePanel>
+      )}
 
       {pickerOpen && (
         <SlidePanel title="Choose Spell Set" onClose={() => setPickerOpen(false)}>

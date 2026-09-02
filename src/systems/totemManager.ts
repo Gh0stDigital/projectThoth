@@ -7,9 +7,9 @@ export function createTotem(name: string): Totem {
   return {
     id: makeId('totem'),
     name: name.trim() || 'Totem',
-    // Every Totem starts on the 'default' avatar for now — only that slot
-    // is guaranteed to have real art. Flip this back to a pickFlavor(...)
-    // roll once every totems/* key has its own artwork.
+    // New Totems start on the neutral portrait; it can be changed at any
+    // time from the Totem screen. Deliberately not randomised, so a Totem
+    // raised for testing a specific look starts from a known state.
     avatarKey: 'default',
     level,
     experience: 0,

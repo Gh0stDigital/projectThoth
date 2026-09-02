@@ -3100,3 +3100,69 @@ select:focus {
 .challenge-prompt .tile-actions {
   flex-shrink: 0;
 }
+
+/* ---- Totem portrait picker ---- */
+
+/* The hero frame is a button now — it keeps its look, gains a hint. */
+button.totem-hero-frame {
+  appearance: none;
+  cursor: pointer;
+  font-family: inherit;
+  display: block;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+.totem-hero-edit {
+  appearance: none;
+  display: block;
+  margin: -6px auto 10px;
+  padding: 4px 10px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--accent-cyan);
+}
+
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.avatar-option {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 10px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+}
+
+.avatar-option.selected {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 16px -6px var(--glow-gold);
+  color: var(--accent-gold);
+}
+
+.avatar-option .avatar-img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.avatar-option-name {
+  font-size: 10px;
+  word-break: break-all;
+  text-align: center;
+}
