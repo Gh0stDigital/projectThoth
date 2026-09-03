@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { sceneArt, sceneKeyFor, sceneKindForEvent } from './scenes'
 import { assetManifest } from './assetManifest'
 
-const scenes: readonly string[] = assetManifest.scenes
+const scenes: readonly string[] = assetManifest.locations
 
 describe('sceneKindForEvent', () => {
   it('maps every event type to a scene kind', () => {
@@ -50,8 +50,8 @@ describe('sceneKeyFor', () => {
 })
 
 describe('sceneArt', () => {
-  it('reports the scenes category when art exists', () => {
-    expect(sceneArt('rest', 'x', 'cave')).toEqual({ category: 'scenes', key: 'dkp_restRoom' })
+  it('names the room the event is about', () => {
+    expect(sceneArt('rest', 'x', 'cave')).toEqual({ category: 'locations', key: 'dkp_restRoom' })
   })
 
   it('always names art that exists', () => {
@@ -59,14 +59,12 @@ describe('sceneArt', () => {
     // never a key that would render as a broken image.
     for (const kind of ['standby', 'treasure', 'trap', 'battle', 'boss_battle', 'rest'] as const) {
       const art = sceneArt(kind, 'x', 'ruins')
-      if (art.category === 'scenes') expect(scenes).toContain(art.key)
-      else expect(art.key).toBe('ruins')
+      expect(scenes).toContain(art.key)
     }
   })
 
-  it('resolves corridors whichever spelling the files use', () => {
-    // scenes.ts lists both spellings, so standby finds art either way.
-    expect(sceneKeyFor('standby', 'x')).not.toBeNull()
+  it('finds the corridor art', () => {
+    expect(sceneKeyFor('standby', 'x')).toMatch(/^dkp_corridor[12]$/)
   })
 })
 

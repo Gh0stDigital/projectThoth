@@ -83,28 +83,34 @@ overwritten — committing real artwork over one is permanent.
 
 ### Dungeon backdrops
 
-`public/assets/scenes/` holds the dungeon art, mapped to situations by
+`public/assets/locations/` holds the dungeon art, mapped to situations by
 `src/config/scenes.ts`. The backdrop is chosen per event, so it changes every
 time the player moves.
 
 | File | Used for |
 | --- | --- |
-| `dkp_coridoor1`, `dkp_coridoor2` | Standby between events; also stands in for encounters and traps |
+| `dkp_entrance` | The dungeon setup screen |
+| `dkp_corridor1`, `dkp_corridor2` | Standby between events; also stands in for encounters and traps |
 | `dkp_treasureRoom` | Treasure events |
-| `dkp_trapRoom` | Traps |
+| `dkp_trapRoom1` | Traps |
 | `dkp_battle` | Ordinary battles |
 | `dkp_bossBattle` | The boss door and the boss fight |
 | `dkp_restRoom` | Rest areas |
-| `dkp_shrine` | Magic rooms; also traps and encounters |
+| `dkp_shrineRoom` | Magic rooms; also traps and encounters |
 | `dkp_keyRoom` | The Key Room, and some treasure rooms |
 | `dkp_2way` | Direction forks |
 
-Where a situation lists more than one option the event's own room shows about
-two thirds of the time and an alternate the rest, so the dungeon varies
-without the backdrop looking wrong. Lookups ignore case and separators
-(`dkp_keyRoom` = `dkp-keyroom`), and each situation lists spelling variants,
-so art resolves whichever way the files are named. Anything still missing
-falls back to the run's location art rather than breaking.
+Where a situation lists more than one option, the room the event is about
+shows about two thirds of the time and an alternate the rest, so the dungeon
+varies without the backdrop looking wrong. Lookups ignore case and separators
+(`dkp_keyRoom` = `dkp-keyroom`), and anything missing falls back to the run's
+`locationKey` rather than breaking.
+
+> **Note on size.** This art is ~34 MB at full resolution, which makes the
+> single-file `dist/thoth-offline.html` about 52 MB. That is fine from a
+> desktop but heavy for a phone download. Downscaling the PNGs to roughly
+> 1290px wide (3x the 430px viewport) would cut it dramatically with no
+> visible loss.
 
 ## Project structure
 

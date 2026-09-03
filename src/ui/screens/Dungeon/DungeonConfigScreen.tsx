@@ -67,7 +67,7 @@ export function DungeonConfigScreen() {
 
           {/* 2. Dungeon entrance image */}
           <div className="scene-window compact">
-            <AssetImage category="locations" assetKey="default" alt="Dungeon entrance" />
+            <AssetImage category="locations" assetKey="dkp_entrance" alt="Dungeon entrance" />
             <span className="scene-tag">{tier.label}</span>
           </div>
 

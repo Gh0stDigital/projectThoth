@@ -22,15 +22,15 @@ describe('asset registry', () => {
   })
 
   it('resolveKey takes the first candidate that exists', () => {
-    expect(resolveKey('scenes', ['dkp_nope', 'dkp_restRoom'])).toBe('dkp_restRoom')
-    expect(resolveKey('scenes', ['dkp_nope', 'dkp_alsoNope'])).toBeNull()
+    expect(resolveKey('locations', ['dkp_nope', 'dkp_restRoom'])).toBe('dkp_restRoom')
+    expect(resolveKey('locations', ['dkp_nope', 'dkp_alsoNope'])).toBeNull()
   })
 
-  it('does not invent matches for a genuinely different word', () => {
-    // Normalization covers case and separators only. "corridor" vs
-    // "coridoor" differ by letters, so it correctly finds nothing — that
-    // variant is handled by listing both spellings in scenes.ts, not by
-    // fuzzy matching, which would risk silently loading the wrong art.
-    expect(resolveKey('scenes', ['dkp_corridor1'])).toBeNull()
+  it('matches the real art regardless of how the key is written', () => {
+    // The art is named dkp_corridor1; a lookup should not care about case
+    // or separators. It should still refuse a genuinely different word.
+    expect(resolveKey('locations', ['dkp_CORRIDOR1'])).toBe('dkp_corridor1')
+    expect(resolveKey('locations', ['dkp-corridor-1'])).toBe('dkp_corridor1')
+    expect(resolveKey('locations', ['dkp_hallway1'])).toBeNull()
   })
 })

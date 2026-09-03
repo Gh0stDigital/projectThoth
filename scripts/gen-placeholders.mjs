@@ -249,24 +249,6 @@ const manifest = {
       boss: 'skull',
     },
   },
-  // Dungeon backdrops. The dkp_ prefix is the artist's naming; the scene
-  // config (src/config/scenes.ts) maps each dungeon situation onto these.
-  scenes: {
-    palette: { bg: '#141a24', accent: '#6b7d99' },
-    items: {
-      default: 'square',
-      dkp_coridoor1: 'square',
-      dkp_coridoor2: 'square',
-      dkp_restRoom: 'circle',
-      dkp_treasureRoom: 'chest',
-      dkp_trapRoom: 'bolt',
-      dkp_bossBattle: 'skull',
-      dkp_battle: 'triangle',
-      dkp_shrine: 'diamond',
-      dkp_keyRoom: 'diamond',
-      dkp_2way: 'triangle',
-    },
-  },
   spells: {
     palette: { bg: '#1a1a2e', accent: '#f2c14e' },
     items: {
@@ -290,9 +272,6 @@ const accentShift = {
   slime: '#6bdb8f', goblin: '#8fdb6b', wraith: '#9f8fe0',
   guardian: '#f2453f',
   cave2: '#334455', boss: '#f2453f',
-  dkp_coridoor1: '#6b7d99', dkp_coridoor2: '#8090aa', dkp_restRoom: '#7fb8d8',
-  dkp_treasureRoom: '#e8c04a', dkp_trapRoom: '#e0654f', dkp_bossBattle: '#f2453f',
-  dkp_battle: '#c15fd0', dkp_shrine: '#7fd8c8', dkp_keyRoom: '#d8b98b', dkp_2way: '#a58bd8',
   fire: '#f2653f', water: '#4f9ef2', earth: '#8f6f3f', wind: '#bfe0f2', arcane: '#c15fe0',
 }
 

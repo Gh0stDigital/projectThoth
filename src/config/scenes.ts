@@ -1,5 +1,5 @@
 /**
- * Dungeon backdrops.
+ * Dungeon backdrops (public/assets/locations).
  *
  * The scene window used to show one fixed image for a whole run, so the
  * dungeon looked identical whether you were in a corridor, a treasure room
@@ -34,7 +34,7 @@ export type SceneKind =
   | 'direction'
 
 /** Plain corridors — the fallback for anything without dedicated art. */
-const CORRIDORS = ['dkp_coridoor1', 'dkp_corridor1', 'dkp_coridoor2', 'dkp_corridor2'] as const
+const CORRIDORS = ['dkp_corridor1', 'dkp_corridor2'] as const
 
 /**
  * Situations whose candidates are peers rather than a first choice with
@@ -52,16 +52,16 @@ const EVEN_ODDS: ReadonlySet<SceneKind> = new Set<SceneKind>(['standby'])
 const sceneCandidates: Record<SceneKind, readonly string[]> = {
   standby: CORRIDORS,
   treasure: ['dkp_treasureRoom', 'dkp_keyRoom', ...CORRIDORS],
-  trap: ['dkp_trapRoom', 'dkp_shrine', ...CORRIDORS],
+  trap: ['dkp_trapRoom1', 'dkp_shrineRoom', ...CORRIDORS],
   // The encounter, met in a corridor or at a shrine — varied.
-  battle: ['dkp_battle', 'dkp_shrine', ...CORRIDORS],
+  battle: ['dkp_battle', 'dkp_shrineRoom', ...CORRIDORS],
   // The fight itself. Always the battle backdrop: it is the arena, not a
   // place you happened to walk through.
   battle_screen: ['dkp_battle'],
   boss_battle: ['dkp_bossBattle'],
   boss_door: ['dkp_bossBattle'],
   rest: ['dkp_restRoom'],
-  magic_room: ['dkp_shrine'],
+  magic_room: ['dkp_shrineRoom'],
   key_room: ['dkp_keyRoom', 'dkp_treasureRoom'],
   direction: ['dkp_2way'],
 }
@@ -101,7 +101,7 @@ export function sceneKeyFor(kind: SceneKind, seed = ''): string | null {
   // options rather than landing on a gap.
   const available: string[] = []
   for (const candidate of candidates) {
-    const key = resolveKey('scenes', [candidate])
+    const key = resolveKey('locations', [candidate])
     if (key && !available.includes(key)) available.push(key)
   }
   if (available.length === 0) return null
@@ -121,7 +121,7 @@ export function sceneKeyFor(kind: SceneKind, seed = ''): string | null {
 }
 
 export interface SceneArt {
-  category: 'scenes' | 'locations'
+  category: 'locations'
   key: string
 }
 
@@ -132,5 +132,5 @@ export interface SceneArt {
  */
 export function sceneArt(kind: SceneKind, seed: string, locationKey: string): SceneArt {
   const key = sceneKeyFor(kind, seed)
-  return key ? { category: 'scenes', key } : { category: 'locations', key: locationKey }
+  return { category: 'locations', key: key ?? locationKey }
 }
