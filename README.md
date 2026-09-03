@@ -20,9 +20,55 @@ No accounts, no network calls, no cloud sync — everything runs and saves local
 ```bash
 npm install
 npm run dev       # local dev server
-npm run build     # production build to dist/ (openable straight from disk — base: './')
+npm run build     # production build to dist/
 npm run preview   # serve the production build locally
+npm test          # unit tests
 ```
+
+## Playing it offline
+
+The game never talks to a server, but *loading* it still has to work with no
+network at all. `npm run build` therefore emits three ways to launch it, and
+each is verified to boot and play with the network hard-blocked:
+
+| What | Use it when |
+| --- | --- |
+| `dist/index.html` | You can copy the whole `dist/` folder. Open the file directly — no server needed. Code is inlined; art sits alongside as ordinary files. |
+| `dist/thoth-offline.html` | You want **one file**. Every image is embedded as a data URI, so it cannot lose its art (~10 MB). Mail it to yourself, drop it on a USB stick, open it anywhere. |
+| `dist/sw.js` | The build is *hosted* over http(s), or added to a phone's home screen. The service worker precaches the whole app on first visit, so later launches never touch the network. |
+
+Two things make the from-disk cases work, and both are load-bearing:
+
+- **`vite.config.ts` builds an IIFE, not an ES module.** Module scripts are
+  CORS-checked, and a page opened over `file://` has a null origin — so a
+  `type="module"` build is blocked outright and the app never boots. This was
+  the actual cause of "it won't open without internet": a blank page and a CORS
+  error in the console.
+- **`scripts/bundle-offline.mjs` inlines that bundle** into the HTML as a plain
+  `<script>` at the end of `<body>`, so there is no separate file left to fetch
+  and nothing left to block.
+
+### If it opens to a white screen
+
+The build no longer fails silently. Whatever you see tells you what happened:
+
+| On screen | Meaning |
+| --- | --- |
+| The game | Working. |
+| *"JavaScript is turned off"* | The page rendered but scripting is disabled. **On iPhone this is what the Files app preview looks like** — it displays HTML but does not run JavaScript, so a JS app can never start there. Open the file in a real browser instead. |
+| *"Starting Thoth…"*, stuck | The page loaded but the bundle never executed. |
+| *"Thoth could not start"* + an error | The bundle ran and threw. The error text is on screen — that's the thing to report. |
+| Genuinely blank | The file itself didn't load. Check it downloaded completely (it's ~10 MB). |
+
+The iPhone Files-app preview is the common one, and it is a limitation of that
+preview, not of the build. `<noscript>`, a boot placeholder and a global error
+handler live in `index.html` ahead of the bundle so that none of these states
+can present as an unexplained white page.
+
+On a phone, the single-file `thoth-offline.html` is the most reliable option —
+*provided it is opened in something that runs JavaScript*. Adding a hosted copy
+to the home screen is the most dependable route of all, but it has to be opened
+online once so the service worker can precache.
 
 ## Project structure
 
@@ -66,6 +112,8 @@ src/
                   records.ts — Records screen sort/filter selectors.
                   persistence.ts — storage abstraction (swap the adapter to
                     change where saves live) + versioned save/load.
+                  offlineCache.ts — registers the service worker when the app
+                    is served over http(s); a no-op from disk.
   state/        Zustand stores that call into systems/ and hold state:
                   persistentStore.ts — Compendium, Sets, Totems, Settings
                     (autosaved to localStorage via systems/persistence.ts).
@@ -82,6 +130,10 @@ src/
     styles/     Single global stylesheet (dark theme, system fonts only —
                 no network font loads).
 scripts/
+  bundle-offline.mjs     Post-build step: inlines the JS bundle into
+                         dist/index.html as a classic script, emits the
+                         all-in-one dist/thoth-offline.html, and generates
+                         dist/sw.js. Runs as part of `npm run build`.
   gen-placeholders.mjs   Fills in any missing placeholder PNG under
                          public/assets (no external deps — hand-rolled PNG
                          encoder). Runs automatically via `npm install`'s
